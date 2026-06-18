@@ -1,14 +1,11 @@
 import React from 'react';
 import { motion } from 'motion/react';
 import { Linkedin, Twitter, Instagram, MessageCircle } from 'lucide-react';
-import { Navbar } from '../components/Navbar';
-import { Footer } from '../components/Footer';
 import { executivesData } from '../data';
 
 export const ExecutivesPage = () => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950">
-            <Navbar />
             <main className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8 py-12 md:py-20">
                 <motion.h1 
                     initial={{ opacity: 0, y: 20 }}
@@ -53,7 +50,6 @@ export const ExecutivesPage = () => {
                     ))}
                 </div>
             </main>
-            <Footer />
         </div>
     );
 };
