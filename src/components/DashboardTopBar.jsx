@@ -37,14 +37,17 @@ export const DashboardTopBar = ({ onMenuClick }) => {
                     <ChevronLeft className="w-5 h-5" animateOnHover={true} animateOnTap={true} />
                 </Link>
             ) : (
-                <div className="w-8 h-8 bg-indigo-900 rounded-full flex items-center justify-center text-white font-bold opacity-90 shadow-sm border border-indigo-800">
-                    <span className="font-serif text-xs">AU</span>
-                </div>
+                <button 
+                  onClick={onMenuClick}
+                  className="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white font-bold opacity-90 shadow-lg shadow-indigo-600/20 border border-indigo-500 hover:scale-105 active:scale-95 transition-all"
+                >
+                    <Menu className="w-5 h-5" animateOnHover={true} animateOnTap={true} />
+                </button>
             )}
         </div>
-        <div className="flex flex-col">
-            <span className="font-bold text-xl tracking-tighter text-slate-900 dark:text-white leading-none hidden lg:block">FUSSA</span>
-            <span className="text-[0.65rem] font-medium leading-tight text-slate-500 dark:text-slate-400 hidden lg:block">Faculty of Science<br/>Students' Association</span>
+        <div className="flex flex-col ml-1 lg:ml-0">
+            <span className="font-bold text-xl tracking-tighter text-slate-900 dark:text-white leading-none hidden lg:block">FOSSA</span>
+            <span className="text-[0.65rem] font-medium leading-tight text-slate-500 dark:text-slate-400 hidden lg:block uppercase tracking-wider">Faculty of Science<br/>Association</span>
         </div>
       </div>
 

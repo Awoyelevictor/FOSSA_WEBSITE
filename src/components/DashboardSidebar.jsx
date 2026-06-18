@@ -31,13 +31,12 @@ export const DashboardSidebar = ({ isOpen, setIsOpen }) => {
   ];
 
   return (
-    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0f172a] text-slate-300 h-screen p-4 flex flex-col transition-transform duration-300 lg:relative lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+    <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#0f172a] text-slate-300 h-screen p-4 flex flex-col transition-transform duration-300 lg:static lg:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}>
       <div className="flex items-center justify-center mb-8 mt-4">
-        {/* Simulating AU Logo */}
-        <div className="w-24 h-24 bg-black rounded-full flex flex-col items-center justify-center border-4 border-indigo-900 shadow-xl overflow-hidden relative">
-            <div className="absolute inset-0 bg-blue-900/30 rounded-full"></div>
-            <span className="font-bold text-4xl text-indigo-400 font-serif z-10 -mb-1">AU</span>
-            <div className="text-[0.35rem] tracking-[0.15em] text-indigo-200 uppercase z-10 w-full text-center px-1 font-semibold leading-tight">Adeleke<br/>University</div>
+        {/* Real FOSSA Logo */}
+        <div className="w-24 h-24 bg-white/5 rounded-full flex flex-col items-center justify-center border-4 border-indigo-900 shadow-xl overflow-hidden relative group">
+            <div className="absolute inset-0 bg-blue-900/20 rounded-full group-hover:bg-blue-900/10 transition-colors"></div>
+            <img src="/logo.png" alt="FOSSA Logo" className="w-16 h-16 object-contain z-10 drop-shadow-lg" />
         </div>
       </div>
       

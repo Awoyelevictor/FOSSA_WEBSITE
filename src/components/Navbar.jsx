@@ -16,7 +16,7 @@ export const Navbar = () => {
         <img src="/logo.png" alt="FOSSA Logo" className="w-10 h-10 object-contain rounded-full" />
         <div className="flex flex-col">
             <span className="font-bold text-lg md:text-xl tracking-tighter text-indigo-950 dark:text-indigo-400 leading-none">FOSSA</span>
-            <span className="text-[0.65rem] font-medium leading-tight text-slate-600 dark:text-slate-400 hidden sm:block">Faculty of Science<br/>Students' Association</span>
+            <span className="text-[0.65rem] font-medium leading-tight text-slate-600 dark:text-slate-400 hidden sm:block">Faculty of Science<br/>Students Association</span>
         </div>
       </Link>
       <div className="hidden md:flex gap-8 text-sm font-semibold text-slate-600 dark:text-slate-350">

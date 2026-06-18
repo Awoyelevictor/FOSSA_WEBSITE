@@ -4,7 +4,6 @@ import { Sparkles } from '../components/animate-ui/icons/sparkles';
 import { ChevronDown } from '../components/animate-ui/icons/chevron-down';
 import { Trash2 } from '../components/animate-ui/icons/trash-2';
 import { BadgeCheck } from '../components/animate-ui/icons/badge-check';
-import { ShieldAlert } from '../components/animate-ui/icons/lock';
 import { Megaphone, Calendar, BookOpen, GraduationCap } from 'lucide-react';
 import {
     getAnnouncements,

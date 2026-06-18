@@ -1,7 +1,10 @@
 import React from 'react';
 import { AnimateStaggerContainer, AnimateStaggerItem, AnimateIn, AnimatedText } from '../components/AnimateLoad';
-import { ChevronRight } from '../components/animate-ui/icons/chevron-right';
 import { Sparkles } from '../components/animate-ui/icons/sparkles';
+import { Binary } from '../components/animate-ui/icons/binary';
+import { PlugZap } from '../components/animate-ui/icons/plug-zap';
+import { Layers } from '../components/animate-ui/icons/layers';
+import { SlidersHorizontal } from '../components/animate-ui/icons/sliders-horizontal';
 import { ScrollReveal } from '../components/ScrollReveal';
 import { GlareHover } from '../components/GlareHover';
 
@@ -15,7 +18,8 @@ export const DepartmentsPage = () => {
             labs: "4 High-spec Computation Labs",
             courses: ["Data Structures", "Web Architectures", "Machine Learning", "Information Networks"],
             color: "border-indigo-500",
-            bgIcon: "text-indigo-600/10 bg-indigo-50 dark:bg-indigo-950/30"
+            bgIcon: "text-indigo-600 bg-indigo-50 dark:bg-indigo-950/30",
+            icon: Binary
         },
         {
             name: "Microbiology",
@@ -25,7 +29,8 @@ export const DepartmentsPage = () => {
             labs: "3 Sterile Diagnostic Suites",
             courses: ["Medical Virology", "Mycology", "Applied Industrial Genetics", "Bioremediation"],
             color: "border-emerald-500",
-            bgIcon: "text-emerald-600/10 bg-emerald-50 dark:bg-emerald-950/30"
+            bgIcon: "text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30",
+            icon: Sparkles
         },
         {
             name: "Physics",
@@ -35,7 +40,8 @@ export const DepartmentsPage = () => {
             labs: "2 Laser & Thermoelectric Laboratories",
             courses: ["Quantum Mechanics", "Electrodynamics", "Solid State Physics", "Biophysics"],
             color: "border-purple-500",
-            bgIcon: "text-purple-600/10 bg-purple-50 dark:bg-purple-950/30"
+            bgIcon: "text-purple-600 bg-purple-50 dark:bg-purple-950/30",
+            icon: PlugZap
         },
         {
             name: "Biochemistry",
@@ -45,7 +51,8 @@ export const DepartmentsPage = () => {
             labs: "3 Molecular Biochemistry Labs",
             courses: ["Enzymology", "Nucleic Acid Chemistry", "Nutritional Biochemistry", "Oncology Assays"],
             color: "border-rose-500",
-            bgIcon: "text-rose-600/10 bg-rose-50 dark:bg-rose-950/30"
+            bgIcon: "text-rose-600 bg-rose-50 dark:bg-rose-950/30",
+            icon: Layers
         },
         {
             name: "Mathematics",
@@ -55,7 +62,8 @@ export const DepartmentsPage = () => {
             labs: "1 Actuarial Computing Lab",
             courses: ["Abstract Algebra", "Real Analysis", "Probability Theory", "Dynamical Equations"],
             color: "border-blue-500",
-            bgIcon: "text-blue-600/10 bg-blue-50 dark:bg-blue-950/30"
+            bgIcon: "text-blue-600 bg-blue-50 dark:bg-blue-950/30",
+            icon: SlidersHorizontal
         },
         {
             name: "Chemistry",
@@ -65,7 +73,8 @@ export const DepartmentsPage = () => {
             labs: "2 Polymer Synthesis Suites",
             courses: ["Physical Chemistry", "Heterocyclic Synthetics", "Spectrometric Analysis", "Geochemistry"],
             color: "border-amber-500",
-            bgIcon: "text-amber-600/10 bg-amber-50 dark:bg-amber-950/30"
+            bgIcon: "text-amber-600 bg-amber-50 dark:bg-amber-950/30",
+            icon: Sparkles
         }
     ];
 
@@ -103,8 +112,8 @@ export const DepartmentsPage = () => {
                                                 {dept.tagline}
                                             </p>
                                         </div>
-                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs ${dept.bgIcon}`}>
-                                            FOSSA
+                                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg transition-transform group-hover:scale-110 duration-500 overflow-hidden ${dept.bgIcon}`}>
+                                             <dept.icon size={20} animateOnHover={true} />
                                         </div>
                                     </div>
 

@@ -15,7 +15,7 @@ export const Footer = () => {
                         <img src="/logo.png" alt="FOSSA Logo" className="w-10 h-10 object-contain rounded-full" />
                         <div className="flex flex-col">
                             <span className="font-bold text-lg tracking-tighter text-indigo-950 dark:text-indigo-400">FOSSA</span>
-                            <span className="text-[0.65rem] font-medium leading-tight">Faculty of Science<br/>Students' Association</span>
+                            <span className="text-[0.65rem] font-medium leading-tight">Faculty of Science<br/>Students Association</span>
                         </div>
                     </div>
                     <p className="text-sm">Empowering science students through excellence, innovation and community.</p>

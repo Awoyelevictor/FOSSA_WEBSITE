@@ -234,7 +234,7 @@ export const HomePage = () => {
             {/* Scroll Reveal Quote Block */}
             <section className="px-4 sm:px-6 md:px-8 max-w-7xl mx-auto mt-12 mb-6">
                 <div className="px-6 md:px-12 py-16 bg-slate-50 dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800/85 rounded-[2.5rem] text-center shadow-sm">
-                    <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.25em] mb-4">Academic Motto</p>
+                    <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-[0.25em] mb-4">Official Motto</p>
                     <ScrollReveal
                         baseOpacity={0.15}
                         enableBlur={true}
@@ -243,7 +243,7 @@ export const HomePage = () => {
                         containerClassName="max-w-4xl mx-auto"
                         textClassName="text-2xl md:text-3xl lg:text-4xl font-extrabold text-slate-800 dark:text-slate-100 leading-relaxed tracking-tight"
                     >
-                        Knowledge is power, but the pursuit of understanding is the true engine of human progress and societal transformation.
+                        IMAGINE • INVENT • INSPIRE
                     </ScrollReveal>
                 </div>
             </section>
