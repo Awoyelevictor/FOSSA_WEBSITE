@@ -1,0 +1,6 @@
+{
+  "name": "FOSSA Platform",
+  "description": "The official platform for the Faculty of Science Students' Association, featuring academic resources, events, and student management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
