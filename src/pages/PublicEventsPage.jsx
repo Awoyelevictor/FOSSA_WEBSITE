@@ -8,52 +8,7 @@ export const PublicEventsPage = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [registeredEvents, setRegisteredEvents] = useState([]);
     
-    const events = [
-        {
-            id: 1,
-            title: "FOSSA Annual Hackathon 2026",
-            date: "Nov 12, 2026",
-            time: "09:00 AM - 05:55 PM",
-            venue: "Adeleke University Amphitheatre",
-            category: "Competition",
-            description: "A premium 24-hour engineering challenge mapping software systems, database security, and AI integrations. Build prototypes side-by-side with industry experts.",
-            image: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=600&q=80",
-            speakers: ["Prof. Adeleke J. O.", "Goodluck (Lead Dev)"],
-        },
-        {
-            id: 2,
-            title: "Molecular Biochemistry Seminar",
-            date: "Oct 24, 2026",
-            time: "11:00 AM - 02:00 PM",
-            venue: "Block C Main Auditorium",
-            category: "Academic Lecture",
-            description: "An deep seminar reviewing metabolic disorders, biosafety standards, immunology mutations, and cancer diagnosis breakthrough arrays.",
-            image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=600&h=350&auto=format&fit=crop",
-            speakers: ["Dr. Evelyn Thompson", "Prof. Alabi J."],
-        },
-        {
-            id: 3,
-            title: "Freshmen Orientation & Induction Gala",
-            date: "Nov 04, 2026",
-            time: "04:00 PM - 08:30 PM",
-            venue: "Faculty Suite Lawn Area",
-            category: "Social Event",
-            description: "FOSSA's formal welcome gala introducing first-year science students to departments, curriculum, administrative staff, and outstanding support networks.",
-            image: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=600&q=80",
-            speakers: ["Faculty President", "Dr. Mrs. Susan T."],
-        },
-        {
-            id: 4,
-            title: "Diagnostic Microbiology & Virology Labs",
-            date: "Dec 02, 2026",
-            time: "10:00 AM - 01:00 PM",
-            venue: "Biosafety Level-3 Diagnostic lab",
-            category: "Workshop",
-            description: "Practical clinical isolation labs. Experience hands-on diagnostics, incubation arrays, and molecular DNA sequencing using advanced laboratory equipment.",
-            image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=600&q=80",
-            speakers: ["Mr. Ibrahim Bello", "Dr. Evelyn T."],
-        }
-    ];
+    const events = [];
 
     const handleRegister = (id) => {
         if (registeredEvents.includes(id)) {
@@ -82,7 +37,7 @@ export const PublicEventsPage = () => {
                         <h1 className="text-3xl md:text-[2.5rem] font-black text-slate-900 dark:text-white leading-tight">
                             <AnimatedText text="Campus Events" />
                         </h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-base max-w-xl mt-2 font-medium">Explore premier scientific gatherings, engineering hackathons, and social induction galas organized by FOSSA.</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-base max-w-xl mt-2 font-medium">Browse official FOSSA events and announcements published by the association.</p>
                     </div>
 
                     {/* Search Field */}
