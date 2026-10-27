@@ -26,6 +26,7 @@ import { ExecutivesPage } from './pages/ExecutivesPage';
 import { PublicEventsPage } from './pages/PublicEventsPage';
 import { GalleryPage } from './pages/GalleryPage';
 import { ContactPage } from './pages/ContactPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { BubbleBackground } from './components/animate-ui/components/backgrounds/bubble';
 // import { SplashCursor } from './components/SplashCursor';
@@ -98,6 +99,9 @@ export default function App() {
             <Route path="help" element={<HelpPage />} />
             <Route path="more" element={<MorePage />} />
           </Route>
+
+          {/* Catch unknown URLs with the custom FOSSA 404 page */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </BrowserRouter>
     </ThemeProvider>
