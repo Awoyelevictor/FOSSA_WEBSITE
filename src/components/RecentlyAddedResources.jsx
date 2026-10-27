@@ -1,32 +1,22 @@
-import React from 'react';
-import { ClipboardList as FileText } from "./animate-ui/icons/clipboard-list";
-import { Lock } from "./animate-ui/icons/lock";
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ClipboardList as FileText } from './animate-ui/icons/clipboard-list';
+import { getPublishedContent } from '../lib/publicContent';
 
 export const RecentlyAddedResources = () => {
-    const resources = [];
-    return (
-        <section className="p-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-3xl shadow-sm transition-colors duration-200 flex flex-col h-full">
-            <div className="flex justify-between items-center mb-6">
-                <h2 className="text-[1.05rem] font-bold text-slate-900 dark:text-white">Recently Added Resources</h2>
-                <a href="#" className="text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline">View All</a>
-            </div>
-            <div className="flex flex-col gap-3 flex-grow mb-6">
-                {resources.length > 0 ? resources.map((r, i) => (
-                    <div key={i} className="flex items-center gap-4 p-3 bg-slate-50 dark:bg-slate-800/40 border border-transparent dark:border-slate-700/30 rounded-2xl group transition-all hover:bg-slate-100 dark:hover:bg-slate-800/60">
-                        <div className="w-10 h-10 bg-white shadow-sm dark:bg-slate-700 rounded-xl text-indigo-500 dark:text-indigo-400 flex items-center justify-center flex-shrink-0">
-                            <FileText className='w-5 h-5'animateOnHover={true} animateOnTap={true} />
-                        </div>
-                        <div className="flex-grow min-w-0 pr-2">
-                            <p className="font-bold text-[0.8rem] text-slate-900 dark:text-white truncate pb-0.5">{r.title}</p>
-                            <p className="text-[0.65rem] font-medium text-slate-500 dark:text-slate-400 truncate">{r.subtitle}</p>
-                        </div>
-                        <Lock className="w-4 h-4 text-slate-400 flex-shrink-0" animateOnHover={true} animateOnTap={true} />
-                    </div>
-                )) : <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No resources have been published yet.</p>}
-            </div>
-            <button className="w-full py-3 bg-white dark:bg-slate-800 border-2 border-indigo-50 dark:border-slate-700 text-indigo-700 dark:text-indigo-300 rounded-xl text-[0.8rem] font-extrabold hover:bg-indigo-50 dark:hover:bg-slate-700 transition-colors mt-auto">
-                Go to Resources
-            </button>
-        </section>
-    );
+  const [resources, setResources] = useState([]);
+  const [error, setError] = useState('');
+  useEffect(() => {
+    let active = true;
+    getPublishedContent('resources').then(items => { if (active) setResources(items.slice(0, 4)); })
+      .catch(err => { if (active) setError(err.message || 'Could not load resources.'); });
+    return () => { active = false; };
+  }, []);
+  return <section className="flex h-full flex-col rounded-3xl border border-slate-100 bg-white p-6 shadow-sm transition-colors dark:border-slate-800 dark:bg-slate-900">
+    <div className="mb-6 flex items-center justify-between"><h2 className="text-[1.05rem] font-bold text-slate-900 dark:text-white">Recently Added Resources</h2><Link to="/dashboard/resources" className="text-xs font-bold text-indigo-600 hover:underline dark:text-indigo-400">View all</Link></div>
+    <div className="mb-6 flex flex-grow flex-col gap-3">
+      {error ? <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">{error}</p> : resources.length ? resources.map((resource, index) => <div key={resource.id || index} className="flex items-center gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/40"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white text-indigo-500 shadow-sm dark:bg-slate-700 dark:text-indigo-400"><FileText className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="truncate text-xs font-bold text-slate-900 dark:text-white">{resource.title || 'Academic resource'}</p><p className="truncate text-[0.65rem] text-slate-500 dark:text-slate-400">{[resource.category, resource.department, resource.level].filter(Boolean).join(' · ')}</p></div></div>) : <p className="py-6 text-center text-sm text-slate-500 dark:text-slate-400">No published resources yet.</p>}
+    </div>
+    <Link to="/dashboard/resources" className="mt-auto block w-full rounded-xl border-2 border-indigo-50 py-3 text-center text-sm font-extrabold text-indigo-700 transition hover:bg-indigo-50 dark:border-slate-700 dark:text-indigo-300 dark:hover:bg-slate-800">Go to Resources</Link>
+  </section>;
 };
