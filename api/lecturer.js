@@ -65,7 +65,7 @@ export default async function lecturerHandler(req, res) {
 
       const payload = contentType === 'resources'
         ? { title, description, url: urlValue, file_name: fileName, file_path: filePath, file_size: fileSize, file_type: fileType, category, type: category, course_code: courseCode, course: courseCode, department, level: level || '', year, submitted_by: profile.display_name || user.user_metadata?.display_name || user.email || 'Lecturer' }
-        : { title, description, message: description, category: 'Lecturer Notice', submitted_by: profile.display_name || user.user_metadata?.display_name || user.email || 'Lecturer' };
+        : { title, description, message: description, url: urlValue || '', attachment_url: urlValue || '', file_name: fileName, file_path: filePath, file_size: fileSize, file_type: fileType, category: 'Lecturer Notice', submitted_by: profile.display_name || user.user_metadata?.display_name || user.email || 'Lecturer' };
 
       const { data, error } = await db.from('fossa_content_items')
         .insert({ content_type: contentType, payload, published: false, created_by: user.id, updated_by: user.id })
