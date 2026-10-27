@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import adminHandler from "./api/admin.js";
 import profileHandler from "./api/auth/profile.js";
+import academicHandler from "./api/academic.js";
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
@@ -10,6 +11,8 @@ async function startServer() {
   app.use(express.json({ limit: "1mb" }));
   app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
   app.all("/api/auth/profile", profileHandler);
+  app.all("/api/academic", academicHandler);
+  app.all("/api/academic/*", academicHandler);
   app.all("/api/admin", adminHandler);
   app.all("/api/admin/*", adminHandler);
   if (process.env.NODE_ENV !== "production") {
