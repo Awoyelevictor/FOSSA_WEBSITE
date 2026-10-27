@@ -9,10 +9,10 @@ export const ProfilePage = () => {
     const [personalSaved, setPersonalSaved] = useState(false);
 
     // Form states
-    const [department, setDepartment] = useState('Computer Science');
-    const [level, setLevel] = useState('300 Level');
-    const [studentId, setStudentId] = useState('FOSSA/CSC/23/0488');
-    const [gpa, setGpa] = useState('4.85');
+    const [department, setDepartment] = useState('');
+    const [level, setLevel] = useState('');
+    const [studentId, setStudentId] = useState('');
+    const [gpa, setGpa] = useState('');
 
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
@@ -73,7 +73,7 @@ export const ProfilePage = () => {
                                 className="w-24 h-24 rounded-full object-cover shadow-sm border-4 border-white dark:border-slate-700 mb-4"
                                 referrerPolicy="no-referrer"
                             />
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Goodluck E.</h2>
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Student Profile</h2>
                             <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Computer Science</p>
                         </div>
 
