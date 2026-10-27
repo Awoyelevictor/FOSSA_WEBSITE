@@ -21,6 +21,7 @@ import { HelpPage } from './pages/HelpPage';
 import { LectureNotesPage } from './pages/LectureNotesPage';
 import { CourseOutlinesPage } from './pages/CourseOutlinesPage';
 import { AdminPage } from './pages/AdminPage';
+import { LoginPage, SignupPage } from './pages/AuthPages';
 import { DepartmentsPage } from './pages/DepartmentsPage';
 import { ExecutivesPage } from './pages/ExecutivesPage';
 import { PublicEventsPage } from './pages/PublicEventsPage';
@@ -70,7 +71,8 @@ export default function App() {
       <GlobalBackground />
       <BrowserRouter>
         <Routes>
-          {/* Standalone Admin Route */}
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/signup" element={<SignupPage />} />
           <Route path="/admin" element={<AdminPage />} />
 
           {/* Public Routes */}
