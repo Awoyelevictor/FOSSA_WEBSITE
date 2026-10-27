@@ -47,6 +47,10 @@ export default async function lecturerHandler(req, res) {
       const department = String(body.department || '').trim();
       const level = body.level === '' || body.level == null ? null : Number(body.level);
       const year = String(body.year || '').trim();
+      const fileName = String(body.fileName || '').trim().slice(0, 240);
+      const filePath = String(body.filePath || '').trim().slice(0, 500);
+      const fileSize = Number(body.fileSize || 0);
+      const fileType = String(body.fileType || '').trim().slice(0, 160);
 
       if (!contentType || !title || title.length > 180) return send(res, 400, { error: 'Choose what you are submitting and enter a title (maximum 180 characters).' });
       if (description.length > 5000 || urlValue.length > 2000 || courseCode.length > 40 || department.length > 120) return send(res, 400, { error: 'One or more fields are too long.' });
@@ -60,7 +64,7 @@ export default async function lecturerHandler(req, res) {
       }
 
       const payload = contentType === 'resources'
-        ? { title, description, url: urlValue, category, type: category, course_code: courseCode, course: courseCode, department, level: level || '', year, submitted_by: profile.display_name || user.user_metadata?.display_name || user.email || 'Lecturer' }
+        ? { title, description, url: urlValue, file_name: fileName, file_path: filePath, file_size: fileSize, file_type: fileType, category, type: category, course_code: courseCode, course: courseCode, department, level: level || '', year, submitted_by: profile.display_name || user.user_metadata?.display_name || user.email || 'Lecturer' }
         : { title, description, message: description, category: 'Lecturer Notice', submitted_by: profile.display_name || user.user_metadata?.display_name || user.email || 'Lecturer' };
 
       const { data, error } = await db.from('fossa_content_items')
