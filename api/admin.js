@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 const TYPES = new Set(['announcements','events','resources','gallery','site-content']);
-const ROLES = new Set(['student','editor','admin','super_admin']);
+const ROLES = new Set(['student','lecturer','editor','admin','super_admin']);
 const send = (res, code, body) => res.status(code).json(body);
 export default async function adminHandler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
