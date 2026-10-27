@@ -1,100 +1,39 @@
-import React, { useState, useEffect } from 'react';
-import { getAnnouncements } from '../utils/store';
-import { AnimateStaggerContainer, AnimateStaggerItem, AnimateIn, AnimatedText } from '../components/AnimateLoad';
+import React, { useEffect, useState } from 'react';
+import { Bell } from '../components/animate-ui/icons/bell';
+import { getPublishedContent } from '../lib/publicContent';
+import { AnimateIn, AnimatedText } from '../components/AnimateLoad';
 
 export const AnnouncementsPage = () => {
-    const [announcements, setAnnouncements] = useState(getAnnouncements());
-    const [activeTab, setActiveTab] = useState('All Announcements');
-    const tabs = ['All Announcements', 'Important', 'General'];
+  const [announcements, setAnnouncements] = useState([]);
+  const [activeTab, setActiveTab] = useState('All Notices');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const tabs = ['All Notices', 'Important', 'General'];
 
-    useEffect(() => {
-        const handleSync = () => {
-            setAnnouncements(getAnnouncements());
-        };
-        window.addEventListener('fossa_store_update', handleSync);
-        return () => {
-            window.removeEventListener('fossa_store_update', handleSync);
-        };
-    }, []);
+  useEffect(() => {
+    let active = true;
+    getPublishedContent('announcements')
+      .then(items => { if (active) setAnnouncements(items); })
+      .catch(err => { if (active) setError(err.message || 'Could not load notices.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
-    const getFilteredAnnouncements = () => {
-        if (activeTab === 'Important') {
-            return announcements.filter((a) => a.type === 'important');
-        }
-        if (activeTab === 'General') {
-            return announcements.filter((a) => a.type === 'general');
-        }
-        return announcements;
-    };
+  const filtered = announcements.filter(item => {
+    const type = String(item.type || item.category || 'general').toLowerCase();
+    if (activeTab === 'Important') return type.includes('important');
+    if (activeTab === 'General') return !type.includes('important');
+    return true;
+  });
 
-    const filteredAnnouncements = getFilteredAnnouncements();
-
-    return (
-        <div className="max-w-5xl mx-auto w-full pb-10">
-            {/* Header */}
-            <AnimateIn direction="down" delay={0.05} className="mb-8 hidden lg:block text-left">
-                <div className="flex items-center gap-4 mb-2">
-                    <div className="w-12 h-12 bg-indigo-900 rounded-full flex items-center justify-center text-white shadow-sm border border-indigo-800 flex-shrink-0">
-                        <span className="font-serif font-bold text-lg">AU</span>
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                            <AnimatedText text="Announcements" />
-                        </h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">Stay updated with important news.</p>
-                    </div>
-                </div>
-            </AnimateIn>
-
-            <AnimateIn direction="up" delay={0.1} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-5 md:p-8 shadow-sm mb-6 transition-colors duration-200">
-                {/* Tabs */}
-                <div className="flex border-b border-slate-100 dark:border-slate-800 mb-8 overflow-x-auto text-left">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-6 py-4 border-b-2 font-bold text-sm whitespace-nowrap transition-colors ${
-                                activeTab === tab 
-                                    ? 'border-indigo-600 text-indigo-700 dark:text-indigo-400' 
-                                    : 'border-transparent text-slate-500 hover:text-slate-700 dark:text-slate-400'
-                            }`}
-                        >
-                            {tab}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Announcement List */}
-                <AnimateStaggerContainer delay={0.06} className="space-y-0">
-                    {filteredAnnouncements.length > 0 ? (
-                        filteredAnnouncements.map((announcement, index) => (
-                            <AnimateStaggerItem key={announcement.id}>
-                                <div className={`flex items-start gap-4 py-5 ${index !== filteredAnnouncements.length - 1 ? 'border-b border-slate-100 dark:border-slate-800/50' : ''}`}>
-                                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${announcement.icon}`}>
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                        </svg>
-                                    </div>
-                                    <div className="flex-grow text-left">
-                                        <h3 className="text-sm md:text-base font-bold text-slate-900 dark:text-white mb-1">{announcement.title}</h3>
-                                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">{announcement.description}</p>
-                                        <p className="text-xs font-bold text-slate-400 dark:text-slate-500">{announcement.date}</p>
-                                    </div>
-                                    {announcement.isNew && (
-                                        <div className="flex-shrink-0">
-                                            <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 text-xs font-bold rounded-lg uppercase tracking-wider">New</span>
-                                        </div>
-                                    )}
-                                </div>
-                            </AnimateStaggerItem>
-                        ))
-                    ) : (
-                        <div className="py-12 text-center">
-                            <p className="text-slate-500 dark:text-slate-400 font-medium">No announcements found.</p>
-                        </div>
-                    )}
-                </AnimateStaggerContainer>
-            </AnimateIn>
-        </div>
-    );
+  return <div className="mx-auto w-full max-w-5xl pb-10 text-left">
+    <AnimateIn direction="down" className="mb-6">
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-white"><AnimatedText text="Notices & Announcements" /></h1>
+      <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Official updates published for the FOSSA community.</p>
+    </AnimateIn>
+    <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-8">
+      <div className="mb-6 flex gap-2 overflow-x-auto border-b border-slate-100 pb-3 dark:border-slate-800">{tabs.map(tab => <button key={tab} onClick={() => setActiveTab(tab)} className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-bold ${activeTab === tab ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>{tab}</button>)}</div>
+      {loading ? <p className="py-10 text-center text-sm text-slate-500">Loading published notices…</p> : error ? <div role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">{error}</div> : filtered.length ? <div className="divide-y divide-slate-100 dark:divide-slate-800">{filtered.map((item, index) => <article key={item.id || index} className="flex gap-4 py-5"><div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-300"><Bell className="h-5 w-5" /></div><div className="min-w-0 flex-1"><div className="flex flex-wrap items-center gap-2"><h2 className="font-bold text-slate-900 dark:text-white">{item.title || 'FOSSA Notice'}</h2>{String(item.type || item.category || '').toLowerCase().includes('important') && <span className="rounded-md bg-amber-50 px-2 py-1 text-[10px] font-extrabold uppercase text-amber-700 dark:bg-amber-900/30 dark:text-amber-300">Important</span>}</div><p className="mt-1 whitespace-pre-line text-sm text-slate-600 dark:text-slate-300">{item.description || item.message || 'Please check the notice details.'}</p><p className="mt-2 text-xs font-semibold text-slate-400">{item.date || (item.created_at ? new Date(item.created_at).toLocaleDateString() : '')}</p></div></article>)}</div> : <div className="py-12 text-center"><p className="font-semibold text-slate-700 dark:text-slate-300">No notices have been published yet.</p><p className="mt-1 text-sm text-slate-400">New notices will appear here after an administrator publishes them.</p></div>}
+    </section>
+  </div>;
 };
