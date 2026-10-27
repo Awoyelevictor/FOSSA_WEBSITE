@@ -6,7 +6,7 @@ const send = (res, code, body) => res.status(code).json(body);
 export default async function adminHandler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
   if (!['GET','POST','PUT','PATCH','DELETE'].includes(req.method)) return send(res,405,{error:'Method not allowed.'});
-  const url = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+  const url = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !key) return send(res,503,{error:'Admin database is not configured. Ask the site owner to complete ADMIN_SETUP.md.'});
   try {
@@ -18,7 +18,7 @@ export default async function adminHandler(req, res) {
     const actor=auth.user;
     const actorEmail=String(actor.email||'').trim().toLowerCase();
     const {data:profile,error:profileError}=await db.from('fossa_user_roles').select('role,display_name').eq('user_id',actor.id).maybeSingle();
-    if(profileError) return send(res,503,{error:'Could not verify role. Run the Supabase migration.'});
+    if(profileError){console.error('FOSSA admin role query failed:',{code:profileError.code,message:profileError.message,details:profileError.details,hint:profileError.hint,host:(()=>{try{return new URL(url).host}catch{return 'invalid-url'}})()});return send(res,503,{error:'Could not verify role. Check the Supabase project URL, service-role key, and function logs.'});}
     if(!profile || !['editor','admin','super_admin'].includes(profile.role)) return send(res,403,{error:'This account has no FOSSA admin access.'});
     // Enforce the sole Super Admin identity on every server request.
     if(profile.role==='super_admin' && actorEmail!==SUPER_ADMIN_EMAIL) return send(res,403,{error:'Super Admin access is restricted to the designated FOSSA account.'});
