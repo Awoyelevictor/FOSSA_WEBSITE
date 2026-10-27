@@ -53,6 +53,8 @@ export const Navbar = () => {
              <Link to="/departments" onClick={() => setMobileMenuOpen(false)} className="font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-50 dark:border-slate-800">Departments</Link>
              <Link to="/events" onClick={() => setMobileMenuOpen(false)} className="font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-50 dark:border-slate-800">Events</Link>
              <Link to="/contact" onClick={() => setMobileMenuOpen(false)} className="font-bold text-slate-900 dark:text-white pb-2 border-b border-slate-50 dark:border-slate-800">Contact</Link>
+             <Link to="/login" onClick={() => setMobileMenuOpen(false)} className="font-bold text-indigo-700 dark:text-indigo-400">Login</Link>
+             <Link to="/signup" onClick={() => setMobileMenuOpen(false)} className="font-bold text-white bg-indigo-700 rounded-xl text-center py-3">Join FOSSA</Link>
         </div>
       )}
     </nav>
