@@ -1,19 +1,18 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ClipboardList } from '../components/animate-ui/icons/clipboard-list';
-import { Calculator } from '../components/animate-ui/icons/calculator';
+import { LayoutDashboard } from '../components/animate-ui/icons/layout-dashboard';
 import { Clock } from '../components/animate-ui/icons/clock';
-import { BookOpen } from '../components/animate-ui/icons/book-open';
 import { Bell } from '../components/animate-ui/icons/bell';
-import { FileText } from '../components/animate-ui/icons/file-text';
+import { List } from '../components/animate-ui/icons/list';
 
 const tools = [
-  { label: 'Lecture Notes', description: 'Open and download published lecture notes.', path: '/dashboard/lecture-notes', icon: BookOpen },
+  { label: 'Lecture Notes', description: 'Open and download published lecture notes.', path: '/dashboard/lecture-notes', icon: ClipboardList },
   { label: 'Past Questions', description: 'Search past exam papers by course and level.', path: '/dashboard/past-questions', icon: ClipboardList },
-  { label: 'GPA Calculator', description: 'Calculate your GPA on a 5-point scale.', path: '/dashboard/gpa-calculator', icon: Calculator },
+  { label: 'GPA Calculator', description: 'Calculate your GPA on a 5-point scale.', path: '/dashboard/gpa-calculator', icon: LayoutDashboard },
   { label: 'Timetable', description: 'Build your weekly class schedule.', path: '/dashboard/timetable', icon: Clock },
   { label: 'Notices', description: 'Read announcements and student updates.', path: '/dashboard/announcements', icon: Bell },
-  { label: 'All Resources', description: 'Browse published academic resources.', path: '/dashboard/resources', icon: FileText },
+  { label: 'All Resources', description: 'Browse published academic resources.', path: '/dashboard/resources', icon: List },
 ];
 
 export const QuickAccessPage = () => <div className="mx-auto w-full max-w-5xl pb-10 text-left">
