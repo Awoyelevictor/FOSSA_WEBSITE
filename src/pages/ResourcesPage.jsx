@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Search } from '../components/animate-ui/icons/search';
 import { ClipboardList } from '../components/animate-ui/icons/clipboard-list';
 import { getPublishedContent } from '../lib/publicContent';
@@ -17,8 +17,9 @@ function resourceUrl(item) { return item.url || item.file_url || item.download_u
 
 export const ResourcesPage = () => {
   const [resources, setResources] = useState([]);
+  const [searchParams] = useSearchParams();
   const [activeCategory, setActiveCategory] = useState('all');
-  const [search, setSearch] = useState('');
+  const [search, setSearch] = useState(() => searchParams.get('search') || '');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
