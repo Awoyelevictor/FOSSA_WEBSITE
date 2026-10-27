@@ -3,6 +3,15 @@ import { randomUUID } from 'node:crypto';
 
 const BUCKET = 'fossa-academic-files';
 const MAX_BYTES = 20 * 1024 * 1024;
+const extensionMime = {
+  jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', webp: 'image/webp', gif: 'image/gif',
+  pdf: 'application/pdf', txt: 'text/plain', doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  xls: 'application/vnd.ms-excel',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+};
 const allowedMime = new Set([
   'application/pdf',
   'image/jpeg', 'image/png', 'image/webp', 'image/gif',
@@ -27,8 +36,13 @@ export default async function lecturerUploadHandler(req, res) {
   const token = (req.headers.authorization || '').startsWith('Bearer ') ? req.headers.authorization.slice(7) : '';
   if (!token) return send(res, 401, { error: 'Sign in to upload files.' });
 
-  const contentType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
-  if (!allowedMime.has(contentType)) return send(res, 415, { error: 'Unsupported file type. Upload an image, PDF, Word, PowerPoint, Excel, or text file.' });
+  const rawName = String(req.headers['x-file-name'] || 'upload').slice(0, 240);
+  let decodedName = rawName;
+  try { decodedName = decodeURIComponent(rawName); } catch {}
+  const extension = decodedName.split('.').pop()?.toLowerCase() || '';
+  const requestedType = String(req.headers['content-type'] || '').split(';')[0].toLowerCase();
+  const contentType = allowedMime.has(requestedType) ? requestedType : extensionMime[extension];
+  if (!contentType || !allowedMime.has(contentType)) return send(res, 415, { error: 'Unsupported file type. Upload an image, PDF, Word, PowerPoint, Excel, or text file.' });
 
   const declaredLength = Number(req.headers['content-length'] || 0);
   if (declaredLength > MAX_BYTES) return send(res, 413, { error: 'Files must be 20 MB or smaller.' });
@@ -55,9 +69,6 @@ export default async function lecturerUploadHandler(req, res) {
     }
     if (!total) return send(res, 400, { error: 'Choose a file before uploading.' });
 
-    const rawName = String(req.headers['x-file-name'] || 'upload').slice(0, 240);
-    let decodedName = rawName;
-    try { decodedName = decodeURIComponent(rawName); } catch {}
     const safeName = decodedName.normalize('NFKC').replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '').slice(-100) || 'upload';
     const objectPath = auth.user.id + '/' + randomUUID() + '-' + safeName;
     const { error: uploadError } = await db.storage.from(BUCKET).upload(objectPath, Buffer.concat(chunks), {
