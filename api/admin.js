@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 const TYPES = new Set(['announcements','events','resources','gallery','site-content']);
-const ROLES = new Set(['student','editor','admin','super_admin']);
+const ROLES = new Set(['student','lecturer','editor','admin','super_admin']);
 const send = (res, code, body) => res.status(code).json(body);
 export default async function adminHandler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -53,7 +53,7 @@ export default async function adminHandler(req, res) {
       if(!admin)return send(res,403,{error:'Only admins can manage student accounts.'});
       if(req.method==='GET'&&!type){
         const {data:list,error}=await db.auth.admin.listUsers({page:1,perPage:200});if(error)throw error;
-        const {data:roles,error:roleErr}=await db.from('fossa_user_roles').select('user_id,role,display_name');if(roleErr)throw roleErr;
+        const {data:roles,error:roleErr}=await db.from('fossa_user_roles').select('user_id,role,display_name,requested_role');if(roleErr)throw roleErr;
         const map=new Map((roles||[]).map(r=>[r.user_id,r]));
         return send(res,200,{users:(list.users||[]).map(u=>({id:u.id,email:u.email,created_at:u.created_at,last_sign_in_at:u.last_sign_in_at,...map.get(u.id)}))});
       }
