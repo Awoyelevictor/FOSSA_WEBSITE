@@ -53,7 +53,7 @@ export default async function adminHandler(req, res) {
       if(!admin)return send(res,403,{error:'Only admins can manage student accounts.'});
       if(req.method==='GET'&&!type){
         const {data:list,error}=await db.auth.admin.listUsers({page:1,perPage:200});if(error)throw error;
-        const {data:roles,error:roleErr}=await db.from('fossa_user_roles').select('user_id,role,display_name');if(roleErr)throw roleErr;
+        const {data:roles,error:roleErr}=await db.from('fossa_user_roles').select('user_id,role,display_name,requested_role');if(roleErr)throw roleErr;
         const map=new Map((roles||[]).map(r=>[r.user_id,r]));
         return send(res,200,{users:(list.users||[]).map(u=>({id:u.id,email:u.email,created_at:u.created_at,last_sign_in_at:u.last_sign_in_at,...map.get(u.id)}))});
       }
