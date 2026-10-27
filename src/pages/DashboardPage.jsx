@@ -19,7 +19,7 @@ export const DashboardPage = () => {
                 <AnimateIn direction="down" delay={0.05}>
                     <p className="text-slate-700 dark:text-slate-300 text-sm font-bold mb-0.5">Welcome back,</p>
                     <h1 className="text-3xl font-black text-slate-900 dark:text-white transition-colors duration-200 tracking-tight">
-                        <AnimatedText text="Goodluck! 👋" />
+                        <AnimatedText text="Your FOSSA dashboard" />
                     </h1>
                 </AnimateIn>
             </div>

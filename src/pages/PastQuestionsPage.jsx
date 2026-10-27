@@ -11,13 +11,7 @@ export const PastQuestionsPage = () => {
     const [levelFilter, setLevelFilter] = useState('All Levels');
     const [yearFilter, setYearFilter] = useState('All Years');
 
-    const pastQuestions = [
-        { id: 1, title: 'Data Structures - 2023', department: 'Computer Science', level: '200 Level', isLocked: true },
-        { id: 2, title: 'Data Structures - 2022', department: 'Computer Science', level: '200 Level', isLocked: true },
-        { id: 3, title: 'Thermodynamics - 2023', department: 'Physics', level: '200 Level', isLocked: true },
-        { id: 4, title: 'Thermodynamics - 2022', department: 'Physics', level: '200 Level', isLocked: true },
-        { id: 5, title: 'Organic Chemistry - 2023', department: 'Biochemistry', level: '300 Level', isLocked: true },
-    ];
+    const pastQuestions = [];
 
     const filtered = pastQuestions.filter(pq => {
         const matchesSearch = pq.title.toLowerCase().includes(searchQuery.toLowerCase());

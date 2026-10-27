@@ -12,50 +12,7 @@ export const GalleryPage = () => {
         { id: 'events', name: 'Social Events' },
     ];
 
-    const photos = [
-        {
-            id: 1,
-            title: "Advanced Biology Isolation Lab",
-            category: "academic",
-            image: "https://images.unsplash.com/photo-1532094349884-543bc11b234d?q=80&w=600&h=400&auto=format&fit=crop",
-            caption: "Undergrad students conducting advanced molecular enzyme assays in our Biosafety Lab."
-        },
-        {
-            id: 2,
-            title: "FOSSA Hackathon Collaborative Sprint",
-            category: "events",
-            image: "https://images.unsplash.com/photo-1543269865-cbf427effbad?auto=format&fit=crop&w=600&h=400&q=80",
-            caption: "Cross-department team building microservices during the 24-hour engineering hackathon."
-        },
-        {
-            id: 3,
-            title: "Faculty Sports Cup Finalists",
-            category: "sports",
-            image: "https://images.unsplash.com/photo-1511578314322-379afb476865?auto=format&fit=crop&w=600&h=400&q=80",
-            caption: "The Computer Science soccer squad celebrating their victory in the annual Faculty Cup."
-        },
-        {
-            id: 4,
-            title: "FOSSA Annual Induction Dinner",
-            category: "events",
-            image: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?q=80&w=600&h=400&auto=format&fit=crop",
-            caption: "New students and distinguished faculty officers gather for the formal gala banquet."
-        },
-        {
-            id: 5,
-            title: "Diagnostic DNA Culturing Arrays",
-            category: "academic",
-            image: "https://images.unsplash.com/photo-1576086213369-97a306d36557?auto=format&fit=crop&w=600&h=400&q=80",
-            caption: "Sterile culture diagnostics in the microbiology biochemistry diagnostics room."
-        },
-        {
-            id: 6,
-            title: "FOSSA Chess Masters Tournament",
-            category: "sports",
-            image: "https://images.unsplash.com/photo-1529699211952-734e80c4d42b?auto=format&fit=crop&w=600&h=400&q=80",
-            caption: "Concentration peaks at the interschool chess masters qualifiers table."
-        }
-    ];
+    const photos = [];
 
     const filteredPhotos = selectedCategory === 'all' 
         ? photos 
@@ -98,7 +55,7 @@ export const GalleryPage = () => {
 
             {/* Photo Grid */}
             <AnimateStaggerContainer delay={0.16} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filteredPhotos.map((photo) => (
+                {filteredPhotos.length > 0 ? filteredPhotos.map((photo) => (
                     <AnimateStaggerItem key={photo.id}>
                         <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800/80 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group">
                             <div className="relative h-64 overflow-hidden">
@@ -122,7 +79,7 @@ export const GalleryPage = () => {
                             </div>
                         </div>
                     </AnimateStaggerItem>
-                ))}
+                )) : (<div className="col-span-full rounded-3xl border border-dashed border-slate-200 dark:border-slate-800 p-12 text-center text-slate-500 dark:text-slate-400">No gallery photos have been published yet.</div>)}
             </AnimateStaggerContainer>
         </div>
     );

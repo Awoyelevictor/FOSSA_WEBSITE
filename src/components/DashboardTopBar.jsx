@@ -66,16 +66,16 @@ export const DashboardTopBar = ({ onMenuClick }) => {
       <div className="flex items-center gap-3 md:gap-5 flex-shrink-0">
         <Link to="/dashboard/announcements" className="relative p-1">
             <Bell className="w-5 h-5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors" animateOnHover={true} animateOnTap={true} />
-            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 text-[10px] font-bold text-white flex items-center justify-center rounded-full border-2 border-white dark:border-slate-950">2</span>
+            
         </Link>
         <button onClick={toggleTheme} className="text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-full transition-colors">
             {theme === 'dark' ? <Sun className="w-5 h-5" animateOnHover={true} animateOnTap={true} /> : <Moon className="w-5 h-5" animateOnHover={true} animateOnTap={true} />}
         </button>
         <div className="flex items-center gap-3 pl-2 md:pl-5 md:border-l border-slate-200 dark:border-slate-800">
-            <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=100&h=100&auto=format&fit=crop" alt="User" className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover shadow-sm border-2 border-white dark:border-slate-800 hidden md:block" referrerPolicy="no-referrer" />
+            
             <div className="hidden md:block">
-                <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Goodluck E.</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Computer Science</p>
+                <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">FOSSA Member</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Student account</p>
             </div>
         </div>
       </div>
