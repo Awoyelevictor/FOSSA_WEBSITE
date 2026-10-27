@@ -13,6 +13,8 @@ export default async function profileHandler(req,res){
   const{data:profile,error}=await db.from('fossa_user_roles').select('role,display_name').eq('user_id',auth.user.id).maybeSingle();
   if(error)return send(res,503,{error:'Could not verify your FOSSA role. Apply the role migration and try again.'});
   if(!profile)return send(res,403,{error:'No FOSSA role is assigned to this account. Contact the site owner.'});
+  const email=String(auth.user.email||'').trim().toLowerCase();
+  if(profile.role==='super_admin' && email!=='fossaadelekeuniversity@gmail.com')return send(res,403,{error:'Super Admin access is restricted to the designated FOSSA account.'});
   return send(res,200,{role:profile.role,display_name:profile.display_name||''});
  }catch(error){console.error('FOSSA profile lookup failed:',error);return send(res,500,{error:'Could not verify your account. Please try again.'});}
 }

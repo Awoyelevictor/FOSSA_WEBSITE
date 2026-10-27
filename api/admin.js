@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 const TYPES = new Set(['announcements','events','resources','gallery','site-content']);
 const ROLES = new Set(['student','lecturer','editor','admin','super_admin']);
+const SUPER_ADMIN_EMAIL = 'fossaadelekeuniversity@gmail.com';
 const send = (res, code, body) => res.status(code).json(body);
 export default async function adminHandler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -15,9 +16,12 @@ export default async function adminHandler(req, res) {
     const {data:auth,error:authError}=await db.auth.getUser(token);
     if(authError || !auth?.user) return send(res,401,{error:'Session invalid or expired. Sign in again.'});
     const actor=auth.user;
+    const actorEmail=String(actor.email||'').trim().toLowerCase();
     const {data:profile,error:profileError}=await db.from('fossa_user_roles').select('role,display_name').eq('user_id',actor.id).maybeSingle();
     if(profileError) return send(res,503,{error:'Could not verify role. Run the Supabase migration.'});
     if(!profile || !['editor','admin','super_admin'].includes(profile.role)) return send(res,403,{error:'This account has no FOSSA admin access.'});
+    // Enforce the sole Super Admin identity on every server request.
+    if(profile.role==='super_admin' && actorEmail!==SUPER_ADMIN_EMAIL) return send(res,403,{error:'Super Admin access is restricted to the designated FOSSA account.'});
     const parts=new URL(req.url,'http://localhost').pathname.replace(/^\/api\/admin\/?/,'').split('/').filter(Boolean);
     const [section,type,id]=parts;
     const superAdmin=profile.role==='super_admin';
@@ -61,6 +65,7 @@ export default async function adminHandler(req, res) {
         const {email,displayName,role='student'}=req.body||{};
         if(!email||!/^\S+@\S+\.\S+$/.test(email))return send(res,400,{error:'Enter a valid email.'});
         if(!ROLES.has(role)||(['admin','super_admin'].includes(role)&&!superAdmin))return send(res,403,{error:'You cannot assign that role.'});
+        if(role==='super_admin')return send(res,403,{error:'Super Admin is a single protected account and cannot be granted through invitations.'});
         const {data,error}=await db.auth.admin.inviteUserByEmail(email,{data:{display_name:displayName||''}});if(error)throw error;
         const {error:roleErr}=await db.from('fossa_user_roles').upsert({user_id:data.user.id,role,display_name:displayName||''});if(roleErr)throw roleErr;
         await audit('invite','user',data.user.id,{email,role});return send(res,201,{user:{id:data.user.id,email:data.user.email,role}});
@@ -72,6 +77,7 @@ export default async function adminHandler(req, res) {
         if(['admin','super_admin'].includes(role)&&!superAdmin)return send(res,403,{error:'Only a super administrator can grant admin access.'});
         const {data:target}=await db.from('fossa_user_roles').select('role').eq('user_id',targetId).maybeSingle();
         if(target?.role==='super_admin'&&!superAdmin)return send(res,403,{error:'Only a super administrator can change this account.'});
+        if(role==='super_admin')return send(res,403,{error:'Super Admin is restricted to the designated account and cannot be granted here.'});
         const {data,error}=await db.from('fossa_user_roles').upsert({user_id:targetId,role}).select('user_id,role,display_name').single();if(error)throw error;
         await audit('role_change','user',targetId,{role});return send(res,200,{user:data});
       }
