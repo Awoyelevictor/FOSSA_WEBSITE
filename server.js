@@ -5,6 +5,7 @@ import adminHandler from "./api/admin.js";
 import profileHandler from "./api/auth/profile.js";
 import academicHandler from "./api/academic.js";
 import publicContentHandler from "./api/public-content.js";
+import lecturerHandler from "./api/lecturer.js";
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
@@ -17,6 +18,7 @@ async function startServer() {
   app.all("/api/admin", adminHandler);
   app.all("/api/admin/*", adminHandler);
   app.all("/api/public/content", publicContentHandler);
+  app.all("/api/lecturer", lecturerHandler);
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
     app.use(vite.middlewares);
