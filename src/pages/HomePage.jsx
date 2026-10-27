@@ -32,17 +32,17 @@ export const HomePage = () => {
                     <AnimateStaggerContainer delay={0.05} className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
                         <AnimateStaggerItem className="flex flex-col items-center">
                             <Users className="w-7 h-7 md:w-8 md:h-8 text-indigo-500 mb-2" animateOnHover={true} animateOnTap={true} />
-                            <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 dark:text-white">6+</h3>
+                            <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 dark:text-white">—</h3>
                             <p className="text-[0.65rem] md:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Departments</p>
                         </AnimateStaggerItem>
                         <AnimateStaggerItem className="flex flex-col items-center">
                             <LucideGraduationCap className="w-7 h-7 md:w-8 md:h-8 text-purple-500 mb-2" />
-                            <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 dark:text-white">2000+</h3>
+                            <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 dark:text-white">—</h3>
                             <p className="text-[0.65rem] md:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Students</p>
                         </AnimateStaggerItem>
                         <AnimateStaggerItem className="flex flex-col items-center">
                             <Calendar className="w-7 h-7 md:w-8 md:h-8 text-blue-500 mb-2" animateOnHover={true} animateOnTap={true} />
-                            <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 dark:text-white">30+</h3>
+                            <h3 className="font-extrabold text-xl md:text-2xl text-slate-900 dark:text-white">—</h3>
                             <p className="text-[0.65rem] md:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mt-1">Events Annually</p>
                         </AnimateStaggerItem>
                         <AnimateStaggerItem className="flex flex-col items-center">
