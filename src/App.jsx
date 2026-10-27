@@ -22,6 +22,8 @@ import { LectureNotesPage } from './pages/LectureNotesPage';
 import { CourseOutlinesPage } from './pages/CourseOutlinesPage';
 import { AdminPage } from './pages/AdminPage';
 import { LoginPage, SignupPage } from './pages/AuthPages';
+import LevelAdvisorPage from './pages/LevelAdvisorPage';
+import AcademicAdminPage from './pages/AcademicAdminPage';
 import { DepartmentsPage } from './pages/DepartmentsPage';
 import { ExecutivesPage } from './pages/ExecutivesPage';
 import { PublicEventsPage } from './pages/PublicEventsPage';
@@ -74,6 +76,8 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/signup" element={<SignupPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/academic" element={<AcademicAdminPage />} />
+          <Route path="/level-advisor" element={<LevelAdvisorPage />} />
 
           {/* Public Routes */}
           <Route path="/" element={<PublicLayout />}>
