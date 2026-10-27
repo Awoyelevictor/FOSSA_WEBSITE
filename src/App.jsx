@@ -32,6 +32,7 @@ import { ContactPage } from './pages/ContactPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 import { TimetablePage } from './pages/TimetablePage';
 import { QuickAccessPage } from './pages/QuickAccessPage';
+import LecturerDashboardPage from './pages/LecturerDashboardPage';
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { BubbleBackground } from './components/animate-ui/components/backgrounds/bubble';
 
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/admin/academic" element={<AcademicAdminPage />} />
       <Route path="/level-advisor" element={<LevelAdvisorPage />} />
+      <Route path="/lecturer" element={<LecturerDashboardPage />} />
       <Route path="/" element={<PublicLayout />}>
         <Route index element={<HomePage />} /><Route path="about" element={<AboutPage />} />
         <Route path="departments" element={<DepartmentsPage />} /><Route path="executives" element={<ExecutivesPage />} />
