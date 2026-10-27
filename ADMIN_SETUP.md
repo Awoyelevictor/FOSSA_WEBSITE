@@ -5,7 +5,7 @@ The admin console uses Supabase Auth and a server-side API. The service-role key
 ## 1. Configure Supabase
 
 1. Create or select a Supabase project.
-2. Run `supabase/migrations/202610270001_secure_admin.sql` in the Supabase SQL Editor.
+2. Run `supabase/migrations/202610270001_secure_admin.sql`, then `supabase/migrations/20261027060000_fossa_role_auth.sql`, in the Supabase SQL Editor (in that order). The second migration creates student profiles automatically and records lecturer access requests without granting lecturer privileges.
 3. In **Authentication → Users**, create the first trusted administrator with a strong unique password.
 4. Copy that user's UUID. Replace `YOUR-AUTH-USER-UUID` in the commented bootstrap INSERT at the end of the migration and run it to assign `super_admin`.
 5. Configure Auth email templates and allowed redirect URLs for the production domain and any preview domains.
