@@ -18,7 +18,7 @@ export default async function academicHandler(req,res){
  try{
   const db=getClient(),identity=await auth(req,res,db);if(!identity)return;
   const{user,profile}=identity;if(!profile)return send(res,403,{error:'Your account has no FOSSA role.'});
-  const url=new URL(req.url,'http://localhost'),path=url.pathname.replace(/^\\/api\\/academic\\/?/,'').split('/').filter(Boolean);
+  const url=new URL(req.url,'http://localhost'),path=url.pathname.split('/').filter(Boolean).slice(2);
   if(path[0]==='advisors'){
    if(!['super_admin','admin'].includes(profile.role))return send(res,403,{error:'Only school administrators can manage Level Advisor assignments.'});
    if(req.method==='GET'){
