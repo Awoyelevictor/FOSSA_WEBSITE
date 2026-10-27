@@ -4,11 +4,7 @@ import { Trash2 } from '../components/animate-ui/icons/trash-2';
 import { AnimateStaggerContainer, AnimateStaggerItem, AnimateIn, AnimatedText, AnimateReveal } from '../components/AnimateLoad';
 
 export const GPACalculatorPage = () => {
-    const [courses, setCourses] = useState([
-        { id: 1, code: 'CSC 101', title: 'Programming I', unit: '3', grade: 'A' },
-        { id: 2, code: 'MTH 101', title: 'Calculus I', unit: '3', grade: 'B+' },
-        { id: 3, code: 'PHY 101', title: 'General Physics I', unit: '2', grade: 'A' },
-    ]);
+    const [courses, setCourses] = useState([]);
     const [activeStep, setActiveStep] = useState(1);
     
     // Form state
@@ -16,15 +12,24 @@ export const GPACalculatorPage = () => {
     const [title, setTitle] = useState('');
     const [unit, setUnit] = useState('');
     const [grade, setGrade] = useState('');
+    const [formError, setFormError] = useState('');
 
     const handleAddCourse = () => {
-        if (!code || !title || !unit || !grade) return;
-        
+        setFormError('');
+        if (!code.trim() || !title.trim() || !unit || !grade) {
+            setFormError('Enter the course code, title, credit units and grade.');
+            return;
+        }
+        if (!Number.isFinite(Number(unit)) || Number(unit) <= 0) {
+            setFormError('Credit units must be a number greater than zero.');
+            return;
+        }
+
         const newCourse = {
             id: Date.now(),
-            code,
-            title,
-            unit,
+            code: code.trim(),
+            title: title.trim(),
+            unit: String(Number(unit)),
             grade
         };
         
@@ -33,6 +38,7 @@ export const GPACalculatorPage = () => {
         setTitle('');
         setUnit('');
         setGrade('');
+        setFormError('');
     };
 
     const handleDelete = (id) => {
@@ -75,7 +81,7 @@ export const GPACalculatorPage = () => {
                             </div>
                             <div className="col-span-1 md:col-span-2">
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Unit</label>
-                                <input value={unit} onChange={e => setUnit(e.target.value)} type="number" placeholder="e.g. 3" className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-100 dark:focus:border-indigo-900/50 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none transition-colors" />
+                                <input value={unit} onChange={e => setUnit(e.target.value)} type="number" min="0.5" step="0.5" placeholder="e.g. 3" className="w-full bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-100 dark:focus:border-indigo-900/50 rounded-2xl px-4 py-3 text-sm font-semibold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none transition-colors" />
                             </div>
                             <div className="col-span-1 md:col-span-3">
                                 <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Grade</label>
@@ -91,6 +97,7 @@ export const GPACalculatorPage = () => {
                                 </select>
                             </div>
                         </div>
+                        {formError && <p role="alert" className="mt-3 text-sm font-semibold text-red-600 dark:text-red-400">{formError}</p>}
                         <div className="flex justify-end mt-4">
                             <button onClick={handleAddCourse} disabled={!code || !title || !unit || !grade} className="flex items-center justify-center gap-2 bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 disabled:cursor-not-allowed text-white w-full md:w-auto px-6 py-3 rounded-xl font-bold text-sm transition-colors shadow-sm">
                                 <Plus className="w-5 h-5" animateOnHover={true} animateOnTap={true} />
