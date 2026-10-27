@@ -1,300 +1,141 @@
-import React, { useState } from 'react';
-import { ChevronDown } from '../components/animate-ui/icons/chevron-down';
+import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { supabase } from '../lib/adminApi';
 import { AnimateIn, AnimatedText } from '../components/AnimateLoad';
 
-export const ProfilePage = () => {
-    const [activeTab, setActiveTab] = useState('Personal Information');
-    const [academicSaved, setAcademicSaved] = useState(false);
-    const [passwordSaved, setPasswordSaved] = useState(false);
-    const [personalSaved, setPersonalSaved] = useState(false);
+const inputClass = 'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white';
+const labelClass = 'block text-sm font-bold text-slate-700 dark:text-slate-300';
 
-    // Form states
+export const ProfilePage = () => {
+    const [user, setUser] = useState(null);
+    const [name, setName] = useState('');
+    const [phone, setPhone] = useState('');
     const [department, setDepartment] = useState('');
     const [level, setLevel] = useState('');
-    const [studentId, setStudentId] = useState('');
-    const [gpa, setGpa] = useState('');
-
-    const [currentPassword, setCurrentPassword] = useState('');
+    const [matricNumber, setMatricNumber] = useState('');
+    const [busy, setBusy] = useState(false);
+    const [message, setMessage] = useState('');
+    const [error, setError] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-    const [passwordError, setPasswordError] = useState('');
+    const [passwordBusy, setPasswordBusy] = useState(false);
 
-    const handleSaveAcademic = (e) => {
-        e.preventDefault();
-        setAcademicSaved(true);
-        setTimeout(() => setAcademicSaved(false), 3000);
-    };
+    useEffect(() => {
+        if (!supabase) return;
+        supabase.auth.getUser().then(({ data, error: authError }) => {
+            if (authError || !data?.user) {
+                setError('Please sign in again to view your profile.');
+                return;
+            }
+            const current = data.user;
+            const meta = current.user_metadata || {};
+            setUser(current);
+            setName(meta.display_name || meta.full_name || meta.name || '');
+            setPhone(meta.phone || '');
+            setDepartment(meta.department || '');
+            setLevel(meta.level || '');
+            setMatricNumber(meta.matric_number || '');
+        });
+    }, []);
 
-    const handleSavePersonal = (e) => {
-        e.preventDefault();
-        setPersonalSaved(true);
-        setTimeout(() => setPersonalSaved(false), 3000);
-    };
-
-    const handleChangePassword = (e) => {
-        e.preventDefault();
-        if (newPassword !== confirmPassword) {
-            setPasswordError('New password and confirm password do not match.');
-            return;
+    const saveProfile = async (event) => {
+        event.preventDefault();
+        setError('');
+        setMessage('');
+        if (!supabase || !user) { setError('Your session is not available. Please sign in again.'); return; }
+        if (!name.trim()) { setError('Please enter your full name.'); return; }
+        setBusy(true);
+        try {
+            const { data, error: updateError } = await supabase.auth.updateUser({
+                data: {
+                    display_name: name.trim(),
+                    full_name: name.trim(),
+                    phone: phone.trim(),
+                    department: department.trim(),
+                    level,
+                    matric_number: matricNumber
+                }
+            });
+            if (updateError) throw updateError;
+            setUser(data.user);
+            setMessage('Your profile has been saved.');
+        } catch (e) {
+            setError(e.message || 'Could not save your profile. Please try again.');
+        } finally {
+            setBusy(false);
         }
-        setPasswordError('');
-        setPasswordSaved(true);
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setTimeout(() => setPasswordSaved(false), 3000);
     };
+
+    const changePassword = async (event) => {
+        event.preventDefault();
+        setError('');
+        setMessage('');
+        if (newPassword.length < 8) { setError('Your new password must contain at least 8 characters.'); return; }
+        if (newPassword !== confirmPassword) { setError('The new passwords do not match.'); return; }
+        setPasswordBusy(true);
+        try {
+            const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+            if (updateError) throw updateError;
+            setNewPassword('');
+            setConfirmPassword('');
+            setMessage('Password updated successfully.');
+        } catch (e) {
+            setError(e.message || 'Could not update your password. Please try again.');
+        } finally {
+            setPasswordBusy(false);
+        }
+    };
+
+    const email = user?.email || '';
+    const initials = (name || email || 'S').trim().split(/\s+/).slice(0, 2).map(part => part[0]?.toUpperCase()).join('');
 
     return (
-        <div className="max-w-5xl mx-auto w-full pb-10 text-left">
-            {/* Header */}
-            <AnimateIn direction="down" delay={0.05} className="mb-8 hidden lg:block">
-                <div className="flex items-center gap-4 mb-2">
-                    <div className="w-12 h-12 bg-indigo-900 rounded-full flex items-center justify-center text-white shadow-sm border border-indigo-800 flex-shrink-0">
-                        <span className="font-serif font-bold text-lg">AU</span>
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-                            <AnimatedText text="Profile" />
-                        </h1>
-                        <p className="text-slate-500 dark:text-slate-400 text-sm">View and update your profile information.</p>
-                    </div>
-                </div>
+        <div className="mx-auto w-full max-w-5xl pb-10">
+            <AnimateIn direction="down" delay={0.05} className="mb-7">
+                <Link to="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">← Back to dashboard</Link>
+                <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white"><AnimatedText text="Your profile" /></h1>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Keep your personal and academic details up to date.</p>
             </AnimateIn>
 
-            <div className="flex flex-col md:flex-row gap-8">
-                {/* Sidebar */}
-                <div className="w-full md:w-64 flex-shrink-0">
-                    <AnimateIn direction="left" delay={0.1}>
-                        <div className="bg-slate-50 dark:bg-slate-800/30 rounded-3xl p-6 flex flex-col items-center text-center border border-slate-100 dark:border-slate-800 mb-6">
-                            <img 
-                                src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?q=80&w=200&h=200&auto=format&fit=crop" 
-                                alt="User Profile" 
-                                className="w-24 h-24 rounded-full object-cover shadow-sm border-4 border-white dark:border-slate-700 mb-4"
-                                referrerPolicy="no-referrer"
-                            />
-                            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-1">Student Profile</h2>
-                            <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Computer Science</p>
-                        </div>
+            {!user && !error && <p className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">Loading your profile…</p>}
+            {error && <p role="alert" className="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">{error}</p>}
+            {message && <p role="status" className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm font-semibold text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300">{message}</p>}
 
-                        <div className="space-y-1">
-                            <button 
-                                onClick={() => setActiveTab('Personal Information')}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-colors ${activeTab === 'Personal Information' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/30 text-slate-900'}`}
-                            >
-                                Personal Information
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('Academic Information')}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-colors ${activeTab === 'Academic Information' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/30 text-slate-900'}`}
-                            >
-                                Academic Information
-                            </button>
-                            <button 
-                                onClick={() => setActiveTab('Change Password')}
-                                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-colors ${activeTab === 'Change Password' ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/30 text-slate-900'}`}
-                            >
-                                Change Password
-                            </button>
-                        </div>
-                    </AnimateIn>
-                </div>
+            {user && <div className="grid gap-6 lg:grid-cols-[280px_1fr]">
+                <aside className="h-fit rounded-3xl border border-slate-200 bg-white p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
+                    <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-indigo-700 text-2xl font-black text-white">{initials || 'S'}</div>
+                    <h2 className="mt-4 break-words text-xl font-black text-slate-900 dark:text-white">{name || 'Your name'}</h2>
+                    <p className="mt-1 break-all text-sm text-slate-500 dark:text-slate-400">{email}</p>
+                    {matricNumber && <p className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">{matricNumber}</p>}
+                    <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">Your name and profile details are saved to your FOSSA account.</p>
+                </aside>
 
-                {/* Content Area */}
-                <div className="flex-grow">
-                    <AnimateIn direction="up" delay={0.15} className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 p-6 md:p-8 shadow-sm">
-                        {activeTab === 'Personal Information' && (
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Personal Information</h3>
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Full Name</label>
-                                        <input 
-                                            type="text" 
-                                            defaultValue="Goodluck E."
-                                            className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full px-4 py-3 focus:outline-none transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Email Address</label>
-                                        <input 
-                                            type="email" 
-                                            defaultValue="goodluck@example.com"
-                                            className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full px-4 py-3 focus:outline-none transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Phone Number</label>
-                                        <input 
-                                            type="tel" 
-                                            defaultValue="+234 800 123 4567"
-                                            className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full px-4 py-3 focus:outline-none transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Gender</label>
-                                        <div className="relative">
-                                            <select className="appearance-none bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-4 pr-10 py-3 focus:outline-none transition-all font-semibold cursor-pointer">
-                                                <option>Male</option>
-                                                <option>Female</option>
-                                                <option>Other</option>
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                                <ChevronDown className="h-4 w-4" animateOnHover={true} animateOnTap={true} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div className="pt-2">
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-2 ml-1">Profile Picture</label>
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-16 h-16 bg-indigo-900 rounded-full flex flex-col items-center justify-center text-white border-2 border-slate-100 dark:border-slate-800">
-                                                <span className="font-serif font-bold">AU</span>
-                                            </div>
-                                            <button className="px-6 py-3 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 font-bold text-sm rounded-xl transition-colors">
-                                                Upload New Picture
-                                            </button>
-                                        </div>
-                                    </div>
-                                    {personalSaved && (
-                                        <div className="p-4 mb-4 text-sm text-emerald-800 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 font-bold border border-emerald-100 dark:border-emerald-900/50">
-                                            ✓ Personal details updated successfully!
-                                        </div>
-                                    )}
-                                    <div className="pt-6 flex justify-end">
-                                        <button onClick={(e) => handleSavePersonal(e)} className="px-8 py-3.5 bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-sm rounded-xl transition-colors shadow-sm">
-                                            Save Changes
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        {activeTab === 'Academic Information' && (
-                            <form onSubmit={handleSaveAcademic}>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Academic Information</h3>
-                                {academicSaved && (
-                                    <div className="p-4 mb-6 text-sm text-emerald-800 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 font-bold border border-emerald-100 dark:border-emerald-900/50 animate-fade-in">
-                                        ✓ Academic record updated successfully!
-                                    </div>
-                                )}
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Department</label>
-                                        <div className="relative">
-                                            <select 
-                                                value={department} 
-                                                onChange={(e) => setDepartment(e.target.value)} 
-                                                className="appearance-none bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-4 pr-10 py-3 focus:outline-none transition-all font-semibold cursor-pointer"
-                                            >
-                                                <option value="Computer Science">Computer Science</option>
-                                                <option value="Microbiology">Microbiology</option>
-                                                <option value="Physics">Physics</option>
-                                                <option value="Biochemistry">Biochemistry</option>
-                                                <option value="Mathematics">Mathematics</option>
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                                <ChevronDown className="h-4 w-4" animateOnHover={true} animateOnTap={true} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Level of Study</label>
-                                        <div className="relative">
-                                            <select 
-                                                value={level} 
-                                                onChange={(e) => setLevel(e.target.value)} 
-                                                className="appearance-none bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full pl-4 pr-10 py-3 focus:outline-none transition-all font-semibold cursor-pointer"
-                                            >
-                                                <option value="100 Level">100 Level</option>
-                                                <option value="200 Level">200 Level</option>
-                                                <option value="300 Level">300 Level</option>
-                                                <option value="400 Level">400 Level</option>
-                                            </select>
-                                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-slate-500">
-                                                <ChevronDown className="h-4 w-4" animateOnHover={true} animateOnTap={true} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Student Registration ID</label>
-                                        <input 
-                                            type="text" 
-                                            value={studentId}
-                                            onChange={(e) => setStudentId(e.target.value)}
-                                            className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full px-4 py-3 focus:outline-none transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Current CGPA Reference</label>
-                                        <input 
-                                            type="text" 
-                                            value={gpa}
-                                            onChange={(e) => setGpa(e.target.value)}
-                                            className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full px-4 py-3 focus:outline-none transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <div className="pt-6 flex justify-end">
-                                        <button type="submit" className="px-8 py-3.5 bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-sm rounded-xl transition-colors shadow-sm">
-                                            Save Academic Record
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        )}
-                        {activeTab === 'Change Password' && (
-                            <form onSubmit={handleChangePassword}>
-                                <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Change Password</h3>
-                                {passwordSaved && (
-                                    <div className="p-4 mb-6 text-sm text-emerald-800 rounded-2xl bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400 font-bold border border-emerald-100 dark:border-emerald-900/50 animate-fade-in">
-                                        ✓ Password updated successfully!
-                                    </div>
-                                )}
-                                {passwordError && (
-                                    <div className="p-4 mb-6 text-sm text-red-800 rounded-2xl bg-red-50 dark:bg-red-950/30 dark:text-red-400 font-bold border border-red-100 dark:border-red-900/50 animate-fade-in">
-                                        ⚠ {passwordError}
-                                    </div>
-                                )}
-                                <div className="space-y-5">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Current Password</label>
-                                        <input 
-                                            type="password" 
-                                            value={currentPassword}
-                                            onChange={(e) => setCurrentPassword(e.target.value)}
-                                            required
-                                            className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full px-4 py-3 focus:outline-none transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">New Password</label>
-                                        <input 
-                                            type="password" 
-                                            value={newPassword}
-                                            onChange={(e) => setNewPassword(e.target.value)}
-                                            required
-                                            className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full px-4 py-3 focus:outline-none transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Confirm New Password</label>
-                                        <input 
-                                            type="password" 
-                                            value={confirmPassword}
-                                            onChange={(e) => setConfirmPassword(e.target.value)}
-                                            required
-                                            className="bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-indigo-500 text-slate-900 dark:text-white text-sm rounded-xl block w-full px-4 py-3 focus:outline-none transition-all font-semibold"
-                                        />
-                                    </div>
-                                    <div className="pt-6 flex justify-end">
-                                        <button type="submit" className="px-8 py-3.5 bg-indigo-700 hover:bg-indigo-800 text-white font-bold text-sm rounded-xl transition-colors shadow-sm">
-                                            Update Password
-                                        </button>
-                                    </div>
-                                </div>
-                            </form>
-                        )}
-                    </AnimateIn>
+                <div className="space-y-6">
+                    <form onSubmit={saveProfile} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+                        <h2 className="text-lg font-black text-slate-900 dark:text-white">Personal and academic information</h2>
+                        <p className="mt-1 mb-6 text-sm text-slate-500 dark:text-slate-400">Your email is shown below as your sign-in address and is not changed here.</p>
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            <label className={labelClass}>Full name<input className={inputClass} value={name} onChange={e => setName(e.target.value)} autoComplete="name" maxLength={100} required /></label>
+                            <label className={labelClass}>Email address<input className={inputClass + ' opacity-70'} value={email} type="email" readOnly /></label>
+                            <label className={labelClass}>Phone number<input className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} type="tel" autoComplete="tel" maxLength={30} placeholder="+234…" /></label>
+                            <label className={labelClass}>Matric number<input className={inputClass + ' opacity-70'} value={matricNumber} readOnly aria-describedby="matric-note" /><span id="matric-note" className="mt-1 block text-xs font-normal text-slate-500">Contact an administrator if this needs correction.</span></label>
+                            <label className={labelClass}>Department<input className={inputClass} value={department} onChange={e => setDepartment(e.target.value)} maxLength={100} placeholder="e.g. Computer Science" /></label>
+                            <label className={labelClass}>Level of study<select className={inputClass} value={level} onChange={e => setLevel(e.target.value)}><option value="">Select level</option><option value="100 Level">100 Level</option><option value="200 Level">200 Level</option><option value="300 Level">300 Level</option><option value="400 Level">400 Level</option><option value="500 Level">500 Level</option><option value="Postgraduate">Postgraduate</option></select></label>
+                        </div>
+                        <div className="mt-7 flex justify-end"><button disabled={busy} type="submit" className="rounded-xl bg-indigo-700 px-6 py-3 font-bold text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60">{busy ? 'Saving…' : 'Save profile'}</button></div>
+                    </form>
+
+                    <form onSubmit={changePassword} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
+                        <h2 className="text-lg font-black text-slate-900 dark:text-white">Change password</h2>
+                        <p className="mt-1 mb-5 text-sm text-slate-500 dark:text-slate-400">Choose a new password with at least 8 characters.</p>
+                        <div className="grid gap-5 sm:grid-cols-2">
+                            <label className={labelClass}>New password<input className={inputClass} type="password" autoComplete="new-password" minLength={8} value={newPassword} onChange={e => setNewPassword(e.target.value)} required /></label>
+                            <label className={labelClass}>Confirm new password<input className={inputClass} type="password" autoComplete="new-password" minLength={8} value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} required /></label>
+                        </div>
+                        <div className="mt-6 flex justify-end"><button disabled={passwordBusy} type="submit" className="rounded-xl border border-slate-300 px-6 py-3 font-bold text-slate-700 transition hover:bg-slate-50 disabled:opacity-60 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800">{passwordBusy ? 'Updating…' : 'Update password'}</button></div>
+                    </form>
                 </div>
-            </div>
+            </div>}
         </div>
     );
 };
