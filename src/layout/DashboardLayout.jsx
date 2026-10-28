@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
+import { supabase } from '../lib/adminApi';
 import { DashboardSidebar } from '../components/DashboardSidebar';
 import { DashboardTopBar } from '../components/DashboardTopBar';
 import { LayoutDashboard as Home } from '../components/animate-ui/icons/layout-dashboard';
@@ -11,8 +12,53 @@ import { Ellipsis as MoreHorizontal } from '../components/animate-ui/icons/ellip
 
 export const DashboardLayout = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [accessState, setAccessState] = useState('checking');
+  const [accessError, setAccessError] = useState('');
   const location = useLocation();
+  const navigate = useNavigate();
+
+  // A lecturer's server-assigned role always wins over browser history or dashboard links.
+  useEffect(() => {
+    let active = true;
+    const verifyDashboardAccess = async () => {
+      setAccessState('checking');
+      setAccessError('');
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) throw error;
+        if (!data.session) {
+          navigate('/login', { replace: true });
+          return;
+        }
+        const response = await fetch('/api/auth/profile', {
+          headers: { Authorization: 'Bearer ' + data.session.access_token }
+        });
+        const profile = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(profile.error || 'Could not verify your FOSSA role.');
+        if (!active) return;
+        if (profile.role === 'lecturer') {
+          navigate('/lecturer', { replace: true });
+          return;
+        }
+        setAccessState('allowed');
+      } catch (error) {
+        if (!active) return;
+        setAccessError(error.message || 'Could not verify your account role.');
+        setAccessState('error');
+      }
+    };
+    if (!supabase) {
+      setAccessError('Authentication is not configured. Please contact the site administrator.');
+      setAccessState('error');
+    } else {
+      verifyDashboardAccess();
+    }
+    return () => { active = false; };
+  }, [location.pathname, navigate]);
   const navClass = path => `flex flex-col items-center gap-1.5 ${location.pathname === path ? 'text-indigo-700 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`;
+  if (accessState === 'checking') return <main className="flex min-h-[70vh] items-center justify-center px-4"><div className="rounded-2xl border border-slate-200 bg-white px-8 py-10 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900"><div className="mx-auto mb-4 h-9 w-9 animate-spin rounded-full border-4 border-indigo-100 border-t-indigo-600"/><p className="font-bold">Verifying your FOSSA role…</p></div></main>;
+  if (accessState === 'error') return <main className="flex min-h-[70vh] items-center justify-center px-4"><div className="max-w-lg rounded-2xl border border-amber-200 bg-white p-6 text-center shadow-sm dark:border-amber-900 dark:bg-slate-900"><h1 className="text-lg font-black">We couldn’t verify your account</h1><p role="alert" className="mt-2 text-sm text-slate-600 dark:text-slate-300">{accessError}</p><button onClick={() => navigate('/login', { replace: true })} className="mt-5 rounded-xl bg-indigo-700 px-5 py-3 text-sm font-bold text-white">Return to sign in</button></div></main>;
+
   return <div className="flex h-screen bg-transparent text-slate-900 dark:text-slate-100 transition-colors duration-200 overflow-hidden">
     <DashboardSidebar isOpen={sidebarOpen} setIsOpen={setSidebarOpen} />
     {sidebarOpen && <div className="fixed inset-0 bg-slate-900/50 z-40 lg:hidden" onClick={() => setSidebarOpen(false)} />}
