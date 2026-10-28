@@ -101,7 +101,14 @@ export default async function electionsHandler(req, res) {
         if (totalError) throw totalError;
         shaped.push({ ...post, candidates: safeCandidates, totalVotes: row.show_live_scores || row.status === 'results_published' ? (totalVotes || 0) : null });
       }
-      return { ...row, posts: shaped };
+      const safeElection = {
+        id: row.id, title: row.title, description: row.description, status: row.status,
+        registration_starts_at: row.registration_starts_at, registration_ends_at: row.registration_ends_at,
+        voting_starts_at: row.voting_starts_at, voting_ends_at: row.voting_ends_at,
+        show_live_scores: row.show_live_scores, published_at: row.published_at,
+        results_published_at: row.results_published_at, created_at: row.created_at
+      };
+      return { ...safeElection, posts: shaped };
     };
 
     if (req.method === 'GET' && !electionId) {
