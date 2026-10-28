@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Bell } from '../components/animate-ui/icons/bell';
 import { getPublishedContent } from '../lib/publicContent';
 import { AnimateIn, AnimatedText } from '../components/AnimateLoad';
@@ -30,6 +31,7 @@ export const AnnouncementsPage = () => {
     <AnimateIn direction="down" className="mb-6">
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white"><AnimatedText text="Notices & Announcements" /></h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Official updates published for the FOSSA community.</p>
+      <Link to="/elections" className="mt-4 inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-indigo-700"><span aria-hidden="true">●</span> Election centre · Live scores</Link>
     </AnimateIn>
     <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-8">
       <div className="mb-6 flex gap-2 overflow-x-auto border-b border-slate-100 pb-3 dark:border-slate-800">{tabs.map(tab => <button key={tab} onClick={() => setActiveTab(tab)} className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-bold ${activeTab === tab ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800'}`}>{tab}</button>)}</div>
