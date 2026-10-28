@@ -67,6 +67,10 @@ export default async function electionsHandler(req, res) {
           if (countError) throw countError;
           if (!Number.isInteger(count) || count < 0) throw new Error('Final tally validation failed.');
         }
+        const { count: ballotCount, error: ballotError } = await db.from('fossa_election_ballots').select('id', { count: 'exact', head: true }).eq('election_id', election.id).eq('post_id', post.id);
+        const { count: participationCount, error: participationError } = await db.from('fossa_election_participation').select('id', { count: 'exact', head: true }).eq('election_id', election.id).eq('post_id', post.id);
+        if (ballotError || participationError) throw ballotError || participationError;
+        if (!Number.isInteger(ballotCount) || ballotCount !== participationCount) throw new Error('Final tally validation failed: participation and ballot totals do not match.');
       }
       const { data: updated, error: updateError } = await db.from('fossa_elections').update({ status: 'results_published', results_published_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', election.id).eq('status', 'published').select('*').maybeSingle();
       if (updateError) throw updateError;
