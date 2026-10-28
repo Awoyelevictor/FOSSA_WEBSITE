@@ -146,8 +146,9 @@ export default async function electionsHandler(req, res) {
       const row = await finalize(election);
       const shaped = await publicElection(row);
       if (actor && profile?.role === 'student') {
-        const s = await student();
-        shaped.viewerEligible = await eligible(electionId, s);
+        const { data: s, error: studentError } = await db.from('fossa_academic_students').select('user_id,department,level').eq('user_id', actor.id).maybeSingle();
+        if (studentError) throw studentError;
+        shaped.viewerEligible = Boolean(s && await eligible(electionId, s));
         if (shaped.viewerEligible) {
           const { data: posts } = await db.from('fossa_election_posts').select('id').eq('election_id', electionId);
           const participation = [];
