@@ -6,6 +6,8 @@ import { AnimateIn, AnimatedText } from '../components/AnimateLoad';
 const inputClass = 'mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white';
 const labelClass = 'block text-sm font-bold text-slate-700 dark:text-slate-300';
 
+const scienceDepartments = ["Basic Sciences","Biochemistry","Biological Science","Biotechnology","Chemistry","Computer Information System","Computer Science","Cyber Security","Food Science and Nutrition","Information Technology","Mathematics","Microbiology","Physics","Software Engineering"];
+
 export const ProfilePage = () => {
     const [user, setUser] = useState(null);
     const [name, setName] = useState('');
@@ -32,7 +34,7 @@ export const ProfilePage = () => {
             setUser(current);
             setName(meta.display_name || meta.full_name || meta.name || '');
             setPhone(meta.phone || '');
-            setDepartment(meta.department || '');
+            setDepartment(({ 'Food and Nutrition': 'Food Science and Nutrition', 'Food Science & Nutrition': 'Food Science and Nutrition', 'Computer Information Systems': 'Computer Information System', 'Cybersecurity': 'Cyber Security', 'Biological Sciences': 'Biological Science' })[meta.department] || meta.department || '');
             setLevel(meta.level || '');
             setMatricNumber(meta.matric_number || '');
         });
@@ -119,7 +121,7 @@ export const ProfilePage = () => {
                             <label className={labelClass}>Email address<input className={inputClass + ' opacity-70'} value={email} type="email" readOnly /></label>
                             <label className={labelClass}>Phone number<input className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} type="tel" autoComplete="tel" maxLength={30} placeholder="+234…" /></label>
                             <label className={labelClass}>Matric number<input className={inputClass + ' opacity-70'} value={matricNumber} readOnly aria-describedby="matric-note" /><span id="matric-note" className="mt-1 block text-xs font-normal text-slate-500">Contact an administrator if this needs correction.</span></label>
-                            <label className={labelClass}>Department<input className={inputClass} value={department} onChange={e => setDepartment(e.target.value)} maxLength={100} placeholder="e.g. Computer Science" /></label>
+                            <label className={labelClass}>Department<select className={inputClass} value={department} onChange={e => setDepartment(e.target.value)}><option value="">Select your department</option>{department && !scienceDepartments.includes(department) && <option value={department}>Current: {department} (select an official department)</option>}{scienceDepartments.map(item => <option key={item} value={item}>{item}</option>)}</select><span className="mt-1 block text-xs font-normal text-slate-500">Choose from Adeleke University Faculty of Science programmes.</span></label>
                             <label className={labelClass}>Level of study<select className={inputClass} value={level} onChange={e => setLevel(e.target.value)}><option value="">Select level</option><option value="100 Level">100 Level</option><option value="200 Level">200 Level</option><option value="300 Level">300 Level</option><option value="400 Level">400 Level</option><option value="500 Level">500 Level</option><option value="Postgraduate">Postgraduate</option></select></label>
                         </div>
                         <div className="mt-7 flex justify-end"><button disabled={busy} type="submit" className="rounded-xl bg-indigo-700 px-6 py-3 font-bold text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60">{busy ? 'Saving…' : 'Save profile'}</button></div>
