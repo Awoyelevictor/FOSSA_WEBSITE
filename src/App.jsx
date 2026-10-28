@@ -30,6 +30,7 @@ import { PublicEventsPage } from './pages/PublicEventsPage';
 import { GalleryPage } from './pages/GalleryPage';
 import { ContactPage } from './pages/ContactPage';
 import { NotFoundPage } from './pages/NotFoundPage';
+import ElectionsPage from './pages/ElectionsPage';
 import { TimetablePage } from './pages/TimetablePage';
 import { QuickAccessPage } from './pages/QuickAccessPage';
 import LecturerDashboardPage from './pages/LecturerDashboardPage';
@@ -51,6 +52,8 @@ export default function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/admin/academic" element={<AcademicAdminPage />} />
+      <Route path="/elections" element={<ElectionsPage />} />
+      <Route path="/elections/:electionId" element={<ElectionsPage />} />
       <Route path="/level-advisor" element={<LevelAdvisorPage />} />
       <Route path="/lecturer" element={<LecturerDashboardPage />} />
       <Route path="/" element={<PublicLayout />}>
