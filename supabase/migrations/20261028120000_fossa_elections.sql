@@ -61,7 +61,6 @@ create table if not exists public.fossa_election_ballots (
   election_id uuid not null references public.fossa_elections(id) on delete restrict,
   post_id uuid not null references public.fossa_election_posts(id) on delete restrict,
   candidate_id uuid not null,
-  accepted_at timestamptz not null default now(),
   foreign key (candidate_id, post_id) references public.fossa_election_candidates(id, post_id) on delete restrict
 );
 create table if not exists public.fossa_election_audit_logs (
