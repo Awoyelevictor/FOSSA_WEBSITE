@@ -8,6 +8,7 @@ import publicContentHandler from "./api/public-content.js";
 import lecturerHandler from "./api/lecturer.js";
 import lecturerUploadHandler from "./api/lecturer-upload.js";
 import electionsHandler from "./api/elections.js";
+import eventsHandler from "./api/events.js";
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
@@ -24,6 +25,7 @@ async function startServer() {
   app.all("/api/lecturer/upload", lecturerUploadHandler);
   app.all("/api/elections", electionsHandler);
   app.all("/api/elections/*", electionsHandler);
+  app.all("/api/events", eventsHandler);
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
     app.use(vite.middlewares);

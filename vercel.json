@@ -51,6 +51,22 @@
     {
       "source": "/contact",
       "destination": "/index.html"
+    },
+    {
+      "source": "/elections",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/elections/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lecturer",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/lecturer/:path*",
+      "destination": "/index.html"
     }
   ]
 }

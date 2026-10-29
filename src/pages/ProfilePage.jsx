@@ -22,20 +22,40 @@ export const ProfilePage = () => {
 
     useEffect(() => {
         if (!supabase) return;
-        supabase.auth.getUser().then(({ data, error: authError }) => {
+        let active = true;
+        const loadProfile = async () => {
+            const { data, error: authError } = await supabase.auth.getUser();
             if (authError || !data?.user) {
-                setError('Please sign in again to view your profile.');
+                if (active) setError('Please sign in again to view your profile.');
                 return;
             }
             const current = data.user;
             const meta = current.user_metadata || {};
+            if (!active) return;
             setUser(current);
             setName(meta.display_name || meta.full_name || meta.name || '');
             setPhone(meta.phone || '');
-            setDepartment(meta.department || '');
-            setLevel(meta.level || '');
-            setMatricNumber(meta.matric_number || '');
+
+            try {
+                const { data: sessionData } = await supabase.auth.getSession();
+                const token = sessionData.session?.access_token;
+                if (!token) return;
+                const response = await fetch('/api/academic/me', { headers: { Authorization: 'Bearer ' + token } });
+                const recordResult = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(recordResult.error || 'Could not load verified academic details.');
+                if (!active) return;
+                const record = recordResult.academicRecord;
+                setDepartment(record?.department || '');
+                setLevel(record?.level ? String(record.level) + ' Level' : '');
+                setMatricNumber(recordResult.matricNumber || '');
+            } catch (e) {
+                if (active) setError(e.message || 'Could not load verified academic details.');
+            }
+        };
+        loadProfile().catch(() => {
+            if (active) setError('Could not load your profile. Please try again.');
         });
+        return () => { active = false; };
     }, []);
 
     const saveProfile = async (event) => {
@@ -51,9 +71,6 @@ export const ProfilePage = () => {
                     display_name: name.trim(),
                     full_name: name.trim(),
                     phone: phone.trim(),
-                    department: department.trim(),
-                    level,
-                    matric_number: matricNumber
                 }
             });
             if (updateError) throw updateError;
@@ -94,7 +111,7 @@ export const ProfilePage = () => {
             <AnimateIn direction="down" delay={0.05} className="mb-7">
                 <Link to="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">← Back to dashboard</Link>
                 <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white"><AnimatedText text="Your profile" /></h1>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Keep your personal and academic details up to date.</p>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Keep your personal details up to date. Verified academic information is managed by FOSSA administration.</p>
             </AnimateIn>
 
             {!user && !error && <p className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">Loading your profile…</p>}
@@ -119,8 +136,8 @@ export const ProfilePage = () => {
                             <label className={labelClass}>Email address<input className={inputClass + ' opacity-70'} value={email} type="email" readOnly /></label>
                             <label className={labelClass}>Phone number<input className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} type="tel" autoComplete="tel" maxLength={30} placeholder="+234…" /></label>
                             <label className={labelClass}>Matric number<input className={inputClass + ' opacity-70'} value={matricNumber} readOnly aria-describedby="matric-note" /><span id="matric-note" className="mt-1 block text-xs font-normal text-slate-500">Contact an administrator if this needs correction.</span></label>
-                            <label className={labelClass}>Department<input className={inputClass} value={department} onChange={e => setDepartment(e.target.value)} maxLength={100} placeholder="e.g. Computer Science" /></label>
-                            <label className={labelClass}>Level of study<select className={inputClass} value={level} onChange={e => setLevel(e.target.value)}><option value="">Select level</option><option value="100 Level">100 Level</option><option value="200 Level">200 Level</option><option value="300 Level">300 Level</option><option value="400 Level">400 Level</option><option value="500 Level">500 Level</option><option value="Postgraduate">Postgraduate</option></select></label>
+                            <label className={labelClass}>Verified department<input className={inputClass + ' opacity-80'} value={department || 'Not verified'} readOnly /><span className="mt-1 block text-xs font-normal text-slate-500">Official academic records are managed by FOSSA administration.</span></label>
+                            <label className={labelClass}>Verified level<input className={inputClass + ' opacity-80'} value={level || 'Not verified'} readOnly /><span className="mt-1 block text-xs font-normal text-slate-500">This verified level is used for eligibility checks, including elections.</span></label>
                         </div>
                         <div className="mt-7 flex justify-end"><button disabled={busy} type="submit" className="rounded-xl bg-indigo-700 px-6 py-3 font-bold text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60">{busy ? 'Saving…' : 'Save profile'}</button></div>
                     </form>

@@ -19,6 +19,14 @@ export default async function academicHandler(req,res){
   const db=getClient(),identity=await auth(req,res,db);if(!identity)return;
   const{user,profile}=identity;if(!profile)return send(res,403,{error:'Your account has no FOSSA role.'});
   const url=new URL(req.url,'http://localhost'),path=url.pathname.split('/').filter(Boolean).slice(2);
+  if(path[0]==='me'&&req.method==='GET'){
+   const[{data:student,error:studentError},{data:role,error:roleError}]=await Promise.all([
+    db.from('fossa_academic_students').select('user_id,student_number,department,level').eq('user_id',user.id).maybeSingle(),
+    db.from('fossa_user_roles').select('matric_number').eq('user_id',user.id).maybeSingle()
+   ]);
+   if(studentError||roleError)throw studentError||roleError;
+   return send(res,200,{academicRecord:student?{department:student.department,level:student.level,student_number:student.student_number||role?.matric_number||''}:null,matricNumber:student?.student_number||role?.matric_number||''});
+  }
   if(path[0]==='advisors'){
    if(!['super_admin','admin'].includes(profile.role))return send(res,403,{error:'Only school administrators can manage Level Advisor assignments.'});
    if(req.method==='GET'){
