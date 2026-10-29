@@ -7,7 +7,7 @@
     "dev": "tsx server.js",
     "build": "vite build && esbuild server.js --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
     "start": "node dist/server.cjs",
-    "lint": "node --check server.js && node --check api/admin.js && node --check api/academic.js && node --check api/auth/profile.js && node --check api/elections.js && node --check api/events.js && node --check api/lecturer.js && node --check api/lecturer-upload.js && node --check api/public-content.js",
+    "lint": "node --check server.js && node --check api/admin.js && node --check api/academic.js && node --check api/auth/profile.js && node --check api/elections.js && node --check api/events.js && node --check api/lecturer.js && node --check api/lecturer-upload.js && node --check api/public-content.js && node --check 'api/academic/[...path].js' && node --check 'api/elections/[...path].js' && node --check 'api/lecturer/[...path].js' && node --check api/lecturer/upload.js",
     "test": "node --test"
   },
   "dependencies": {
