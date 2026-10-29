@@ -70,7 +70,7 @@ export default async function eventsHandler(req, res) {
       const dateValue = event.payload?.date;
       if (dateValue) {
         const textDate = String(dateValue).trim();
-        const parsedDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(textDate)
+        const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(textDate)
           ? new Date(textDate + 'T23:59:59.999Z').getTime()
           : new Date(textDate).getTime();
         if (Number.isFinite(parsedDate) && parsedDate < Date.now()) {
