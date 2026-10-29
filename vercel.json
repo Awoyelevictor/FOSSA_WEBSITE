@@ -1,10 +1,12 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/:path*",
-      "destination": "https://fossa-website.onrender.com/api/:path*"
-    },
+      "src": "/api/(.*)",
+      "dest": "https://fossa-website.onrender.com/api/$1"
+    }
+  ],
+  "rewrites": [
     {
       "source": "/(.*)",
       "destination": "/index.html"
