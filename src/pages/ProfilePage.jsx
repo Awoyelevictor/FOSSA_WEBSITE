@@ -22,28 +22,40 @@ export const ProfilePage = () => {
 
     useEffect(() => {
         if (!supabase) return;
-        supabase.auth.getUser().then(({ data, error: authError }) => {
+        let active = true;
+        const loadProfile = async () => {
+            const { data, error: authError } = await supabase.auth.getUser();
             if (authError || !data?.user) {
-                setError('Please sign in again to view your profile.');
+                if (active) setError('Please sign in again to view your profile.');
                 return;
             }
             const current = data.user;
             const meta = current.user_metadata || {};
+            if (!active) return;
             setUser(current);
             setName(meta.display_name || meta.full_name || meta.name || '');
             setPhone(meta.phone || '');
-            setDepartment('');
-            setLevel('');
-            setMatricNumber('');
-            const response = await fetch('/api/academic/me', { headers: { Authorization: 'Bearer ' + (await supabase.auth.getSession()).data.session?.access_token } });
-            const recordResult = await response.json().catch(() => ({}));
-            if (response.ok) {
+
+            try {
+                const { data: sessionData } = await supabase.auth.getSession();
+                const token = sessionData.session?.access_token;
+                if (!token) return;
+                const response = await fetch('/api/academic/me', { headers: { Authorization: 'Bearer ' + token } });
+                const recordResult = await response.json().catch(() => ({}));
+                if (!response.ok) throw new Error(recordResult.error || 'Could not load verified academic details.');
+                if (!active) return;
                 const record = recordResult.academicRecord;
                 setDepartment(record?.department || '');
                 setLevel(record?.level ? String(record.level) + ' Level' : '');
                 setMatricNumber(recordResult.matricNumber || '');
+            } catch (e) {
+                if (active) setError(e.message || 'Could not load verified academic details.');
             }
+        };
+        loadProfile().catch(() => {
+            if (active) setError('Could not load your profile. Please try again.');
         });
+        return () => { active = false; };
     }, []);
 
     const saveProfile = async (event) => {
