@@ -1,55 +1,14 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "routes": [
+    {
+      "src": "/api/(.*)",
+      "dest": "https://fossa-website.onrender.com/api/$1"
+    }
+  ],
   "rewrites": [
     {
-      "source": "/login",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/signup",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/admin/academic",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/level-advisor",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/dashboard/:path*",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/about",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/departments",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/executives",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/events",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/gallery",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/contact",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ]

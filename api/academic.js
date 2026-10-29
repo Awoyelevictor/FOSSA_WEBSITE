@@ -19,6 +19,48 @@ export default async function academicHandler(req,res){
   const db=getClient(),identity=await auth(req,res,db);if(!identity)return;
   const{user,profile}=identity;if(!profile)return send(res,403,{error:'Your account has no FOSSA role.'});
   const url=new URL(req.url,'http://localhost'),path=url.pathname.split('/').filter(Boolean).slice(2);
+  if(path[0]==='me'&&req.method==='GET'){
+   const{data:record,error}=await db.from('fossa_academic_students').select('student_number,department,level,updated_at').eq('user_id',user.id).maybeSingle();
+   if(error)throw error;
+   return send(res,200,{academicRecord:record||null});
+  }
+  if(path[0]==='students'&&req.method==='POST'){
+   if(!['super_admin','admin'].includes(profile.role))return send(res,403,{error:'Only administrators can import verified student academic records.'});
+   const input=Array.isArray(req.body?.records)?req.body.records:[];
+   if(!input.length)return send(res,400,{error:'Add at least one student record.'});
+   if(input.length>500)return send(res,413,{error:'Import up to 500 records at a time.'});
+   const normalizeMatric=value=>String(value||'').trim().toUpperCase().replace(/\\s+/g,'');
+   const invalid=[],seen=new Set(),prepared=[];
+   input.forEach((row,index)=>{
+    const matric=normalizeMatric(row?.matric_number),department=String(row?.department||'').trim(),level=Number(row?.level);
+    if(!matric||matric.length<4||matric.length>32||!department||department.length>120||!levels.has(level)){
+     invalid.push({row:index+2,matric_number:matric||'',reason:'Matric number, department, or level is missing or invalid.'});return;
+    }
+    if(seen.has(matric)){invalid.push({row:index+2,matric_number:matric,reason:'Duplicate matric number in this import.'});return;}
+    seen.add(matric);prepared.push({row:index+2,matric,department,level});
+   });
+   if(!prepared.length)return send(res,400,{error:'No valid records to import.',rejected:invalid});
+   const{data:roleRows,error:roleError}=await db.from('fossa_user_roles').select('user_id,role,matric_number').not('matric_number','is',null);
+   if(roleError)throw roleError;
+   const accountByMatric=new Map((roleRows||[]).map(row=>[normalizeMatric(row.matric_number),row]));
+   const{data:existingRows,error:existingError}=await db.from('fossa_academic_students').select('user_id,student_number');
+   if(existingError)throw existingError;
+   const academicOwnerByMatric=new Map((existingRows||[]).map(row=>[normalizeMatric(row.student_number),row.user_id]));
+   const ready=[];
+   for(const row of prepared){
+    const account=accountByMatric.get(row.matric);
+    if(!account){invalid.push({row:row.row,matric_number:row.matric,reason:'No FOSSA account has this registered matric number.'});continue;}
+    if(account.role!=='student'){invalid.push({row:row.row,matric_number:row.matric,reason:'Only student accounts can receive student academic records.'});continue;}
+    const owner=academicOwnerByMatric.get(row.matric);
+    if(owner&&owner!==account.user_id){invalid.push({row:row.row,matric_number:row.matric,reason:'This matric number is already attached to another academic record.'});continue;}
+    ready.push({user_id:account.user_id,student_number:row.matric,department:row.department,level:row.level});
+   }
+   if(!ready.length)return send(res,200,{imported:0,rejected:invalid});
+   const{data:saved,error:saveError}=await db.from('fossa_academic_students').upsert(ready,{onConflict:'user_id'}).select('user_id,student_number,department,level');
+   if(saveError)throw saveError;
+   await db.from('fossa_admin_audit_logs').insert({actor_id:user.id,actor_email:user.email,action:'import_academic_records',entity_type:'academic_students',details:{imported:saved?.length||0,rejected:invalid.length}});
+   return send(res,200,{imported:saved?.length||0,rejected:invalid});
+  }
   if(path[0]==='advisors'){
    if(!['super_admin','admin'].includes(profile.role))return send(res,403,{error:'Only school administrators can manage Level Advisor assignments.'});
    if(req.method==='GET'){
