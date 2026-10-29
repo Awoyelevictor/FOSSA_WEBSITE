@@ -22,20 +22,34 @@ export const ProfilePage = () => {
 
     useEffect(() => {
         if (!supabase) return;
-        supabase.auth.getUser().then(({ data, error: authError }) => {
-            if (authError || !data?.user) {
-                setError('Please sign in again to view your profile.');
-                return;
+        let active = true;
+        (async () => {
+            try {
+                const { data, error: authError } = await supabase.auth.getUser();
+                if (authError || !data?.user) throw new Error('Please sign in again to view your profile.');
+                const current = data.user;
+                const meta = current.user_metadata || {};
+                if (!active) return;
+                setUser(current);
+                setName(meta.display_name || meta.full_name || meta.name || '');
+                setPhone(meta.phone || '');
+                const { data: sessionData } = await supabase.auth.getSession();
+                const token = sessionData.session?.access_token;
+                if (token) {
+                    const response = await fetch('/api/academic/me', { headers: { Authorization: 'Bearer ' + token } });
+                    const result = await response.json().catch(() => ({}));
+                    if (!response.ok) throw new Error(result.error || 'Could not load verified academic details.');
+                    if (!active) return;
+                    const record = result.academicRecord;
+                    setDepartment(record?.department || '');
+                    setLevel(record?.level ? String(record.level) : '');
+                    setMatricNumber(record?.student_number || '');
+                }
+            } catch (e) {
+                if (active) setError(e.message || 'Could not load your profile.');
             }
-            const current = data.user;
-            const meta = current.user_metadata || {};
-            setUser(current);
-            setName(meta.display_name || meta.full_name || meta.name || '');
-            setPhone(meta.phone || '');
-            setDepartment(meta.department || '');
-            setLevel(meta.level || '');
-            setMatricNumber(meta.matric_number || '');
-        });
+        })();
+        return () => { active = false; };
     }, []);
 
     const saveProfile = async (event) => {
@@ -50,13 +64,20 @@ export const ProfilePage = () => {
                 data: {
                     display_name: name.trim(),
                     full_name: name.trim(),
-                    phone: phone.trim(),
-                    department: department.trim(),
-                    level,
-                    matric_number: matricNumber
+                    phone: phone.trim()
                 }
             });
             if (updateError) throw updateError;
+            const { data: sessionData } = await supabase.auth.getSession();
+            const token = sessionData.session?.access_token;
+            if (!token) throw new Error('Your session has expired. Please sign in again.');
+            const roleResponse = await fetch('/api/auth/profile', {
+                method: 'PATCH',
+                headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ display_name: name.trim() })
+            });
+            const roleResult = await roleResponse.json().catch(() => ({}));
+            if (!roleResponse.ok) throw new Error(roleResult.error || 'Could not synchronize your FOSSA display name.');
             setUser(data.user);
             setMessage('Your profile has been saved.');
         } catch (e) {
@@ -113,14 +134,15 @@ export const ProfilePage = () => {
                 <div className="space-y-6">
                     <form onSubmit={saveProfile} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-8">
                         <h2 className="text-lg font-black text-slate-900 dark:text-white">Personal and academic information</h2>
-                        <p className="mt-1 mb-6 text-sm text-slate-500 dark:text-slate-400">Your email is shown below as your sign-in address and is not changed here.</p>
+                        <p className="mt-1 mb-2 text-sm text-slate-500 dark:text-slate-400">Your email is shown below as your sign-in address and is not changed here.</p>
+                        <p className="mb-6 text-xs text-slate-500 dark:text-slate-400">Department, level and matric number come from your verified academic record. Contact FOSSA administration if they need correction.</p>
                         <div className="grid gap-5 sm:grid-cols-2">
                             <label className={labelClass}>Full name<input className={inputClass} value={name} onChange={e => setName(e.target.value)} autoComplete="name" maxLength={100} required /></label>
                             <label className={labelClass}>Email address<input className={inputClass + ' opacity-70'} value={email} type="email" readOnly /></label>
                             <label className={labelClass}>Phone number<input className={inputClass} value={phone} onChange={e => setPhone(e.target.value)} type="tel" autoComplete="tel" maxLength={30} placeholder="+234…" /></label>
                             <label className={labelClass}>Matric number<input className={inputClass + ' opacity-70'} value={matricNumber} readOnly aria-describedby="matric-note" /><span id="matric-note" className="mt-1 block text-xs font-normal text-slate-500">Contact an administrator if this needs correction.</span></label>
-                            <label className={labelClass}>Department<input className={inputClass} value={department} onChange={e => setDepartment(e.target.value)} maxLength={100} placeholder="e.g. Computer Science" /></label>
-                            <label className={labelClass}>Level of study<select className={inputClass} value={level} onChange={e => setLevel(e.target.value)}><option value="">Select level</option><option value="100 Level">100 Level</option><option value="200 Level">200 Level</option><option value="300 Level">300 Level</option><option value="400 Level">400 Level</option><option value="500 Level">500 Level</option><option value="Postgraduate">Postgraduate</option></select></label>
+                            <label className={labelClass}>Department<input className={inputClass + ' opacity-70'} value={department} readOnly placeholder="Not yet verified" /></label>
+                            <label className={labelClass}>Level of study<input className={inputClass + ' opacity-70'} value={level ? level + ' Level' : ''} readOnly placeholder="Not yet verified" /></label>
                         </div>
                         <div className="mt-7 flex justify-end"><button disabled={busy} type="submit" className="rounded-xl bg-indigo-700 px-6 py-3 font-bold text-white transition hover:bg-indigo-800 disabled:cursor-not-allowed disabled:opacity-60">{busy ? 'Saving…' : 'Save profile'}</button></div>
                     </form>

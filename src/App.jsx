@@ -24,6 +24,7 @@ import { AdminPage } from './pages/AdminPage';
 import { LoginPage, SignupPage } from './pages/AuthPages';
 import LevelAdvisorPage from './pages/LevelAdvisorPage';
 import AcademicAdminPage from './pages/AcademicAdminPage';
+import AcademicRecordsPage from './pages/AcademicRecordsPage';
 import { DepartmentsPage } from './pages/DepartmentsPage';
 import { ExecutivesPage } from './pages/ExecutivesPage';
 import { PublicEventsPage } from './pages/PublicEventsPage';
@@ -52,6 +53,7 @@ export default function App() {
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/admin" element={<AdminPage />} />
       <Route path="/admin/academic" element={<AcademicAdminPage />} />
+      <Route path="/admin/academic/students" element={<AcademicRecordsPage />} />
       <Route path="/elections" element={<ElectionsPage />} />
       <Route path="/elections/:electionId" element={<ElectionsPage />} />
       <Route path="/level-advisor" element={<LevelAdvisorPage />} />

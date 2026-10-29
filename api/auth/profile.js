@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 const send=(res,status,body)=>res.status(status).json(body);
 export default async function profileHandler(req,res){
- if(req.method!=='GET')return send(res,405,{error:'Method not allowed.'});
+ if(!['GET','PATCH'].includes(req.method))return send(res,405,{error:'Method not allowed.'});
  const url=process.env.VITE_SUPABASE_URL||process.env.SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY;
  if(!url||!key)return send(res,503,{error:'Account role verification is not configured. Ask the site owner to complete ADMIN_SETUP.md.'});
  const token=(req.headers.authorization||'').startsWith('Bearer ')?req.headers.authorization.slice(7):'';
@@ -15,6 +15,13 @@ export default async function profileHandler(req,res){
   if(!profile)return send(res,403,{error:'No FOSSA role is assigned to this account. Contact the site owner.'});
   const email=String(auth.user.email||'').trim().toLowerCase();
   if(profile.role==='super_admin' && email!=='fossaadelekeuniversity@gmail.com')return send(res,403,{error:'Super Admin access is restricted to the designated FOSSA account.'});
+  if(req.method==='PATCH'){
+   const displayName=String(req.body?.display_name||'').trim();
+   if(displayName.length<1||displayName.length>100)return send(res,400,{error:'Display name must be between 1 and 100 characters.'});
+   const{data:updated,error:updateError}=await db.from('fossa_user_roles').update({display_name:displayName}).eq('user_id',auth.user.id).select('role,display_name').single();
+   if(updateError){console.error('FOSSA display name sync failed:',updateError.message);return send(res,503,{error:'Your profile was saved, but the FOSSA display name could not be synchronized.'});}
+   return send(res,200,{role:updated.role,display_name:updated.display_name});
+  }
   return send(res,200,{role:profile.role,display_name:profile.display_name||''});
  }catch(error){console.error('FOSSA profile lookup failed:',error);return send(res,500,{error:'Could not verify your account. Please try again.'});}
 }
