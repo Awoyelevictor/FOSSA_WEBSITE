@@ -71,7 +71,7 @@ export default async function eventsHandler(req, res) {
       if (dateValue) {
         const textDate = String(dateValue).trim();
         const parsed = new Date(textDate);
-        const hasExplicitTime = /(?:T|\b\d{1,2}:\d{2}\b)/i.test(textDate);
+        const hasExplicitTime = /(?:T\d{2}:?\d{2}|\b\d{1,2}:\d{2}\b)/i.test(textDate);
         if (!Number.isNaN(parsed.getTime()) && !hasExplicitTime) parsed.setUTCHours(23, 59, 59, 999);
         const parsedDate = parsed.getTime();
         if (Number.isFinite(parsedDate) && parsedDate < Date.now()) {
