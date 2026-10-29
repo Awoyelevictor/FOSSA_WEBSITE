@@ -5,6 +5,7 @@ import { eventDateLabel, filterEventsByTab, parseEventDate } from '../src/lib/ev
 test('parseEventDate handles valid dates and unknown labels', () => {
   assert.equal(parseEventDate('2026-12-01T12:00:00Z'), Date.parse('2026-12-01T12:00:00Z'));
   assert.equal(parseEventDate('Date to be announced'), null);
+  assert.equal(parseEventDate('October 29, 2026'), Date.parse('2026-10-29T23:59:59.999Z'));
   assert.equal(parseEventDate(''), null);
 });
 
