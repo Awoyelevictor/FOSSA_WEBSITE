@@ -70,9 +70,10 @@ export default async function eventsHandler(req, res) {
       const dateValue = event.payload?.date;
       if (dateValue) {
         const textDate = String(dateValue).trim();
-        const parsedDate = /^\d{4}-\d{2}-\d{2}$/.test(textDate)
-          ? new Date(textDate + 'T23:59:59.999Z').getTime()
-          : new Date(textDate).getTime();
+        const parsed = new Date(textDate);
+        const hasExplicitTime = /(?:T|\\b\\d{1,2}:\\d{2}\\b)/i.test(textDate);
+        if (!Number.isNaN(parsed.getTime()) && !hasExplicitTime) parsed.setUTCHours(23, 59, 59, 999);
+        const parsedDate = parsed.getTime();
         if (Number.isFinite(parsedDate) && parsedDate < Date.now()) {
           return send(res, 409, { error: 'Registration is closed because this event has already passed.' });
         }
