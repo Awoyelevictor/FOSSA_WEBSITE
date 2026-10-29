@@ -15,7 +15,7 @@ export default function ElectionsPage() {
   const [session,setSession] = useState(null), [role,setRole] = useState(''), [elections,setElections] = useState([]), [election,setElection] = useState(null);
   const [now,setNow] = useState(Date.now()), [loading,setLoading] = useState(true), [saving,setSaving] = useState(false), [error,setError] = useState(''), [notice,setNotice] = useState('');
   const [title,setTitle] = useState(''), [description,setDescription] = useState(''), [regStart,setRegStart] = useState(''), [regEnd,setRegEnd] = useState(''), [voteStart,setVoteStart] = useState(''), [voteEnd,setVoteEnd] = useState('');
-  const [department,setDepartment] = useState('Computer Science'), [level,setLevel] = useState('400'), [cohorts,setCohorts] = useState([]), [showScores,setShowScores] = useState(true);
+  const [department,setDepartment] = useState('Computer Science'), [level,setLevel] = useState('400'), [cohorts,setCohorts] = useState([]), [showScores,setShowScores] = useState(false);
   const [postTitle,setPostTitle] = useState(''), [postDescription,setPostDescription] = useState(''), [manifestos,setManifestos] = useState({}), [selected,setSelected] = useState({});
 
   useEffect(()=>{ if(!supabase)return; supabase.auth.getSession().then(({data})=>setSession(data.session)); const {data}=supabase.auth.onAuthStateChange((_e,s)=>setSession(s)); return()=>data.subscription.unsubscribe(); },[]);
@@ -58,7 +58,7 @@ export default function ElectionsPage() {
           <label className="text-sm font-semibold">Level<select className={field} value={level} onChange={e=>setLevel(e.target.value)}>{levels.map(n=><option key={n} value={n}>{n} Level</option>)}</select></label>
           <button type="button" onClick={addCohort} className="self-end rounded-xl border px-4 py-2.5 text-sm font-bold"><Plus size={15} className="mr-1 inline"/>Add</button>
         </div><div className="mt-3 flex flex-wrap gap-2">{cohorts.map((c,i)=><button type="button" key={c.department+c.level} onClick={()=>setCohorts(old=>old.filter((_,j)=>i!==j))} className="rounded-full bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200">{c.department} · {c.level} Level ×</button>)}</div></div>
-        <label className="flex items-center gap-3 text-sm font-semibold md:col-span-2"><input type="checkbox" checked={showScores} onChange={e=>setShowScores(e.target.checked)} className="h-4 w-4"/> Show live candidate vote counts while voting is open</label>
+        <div className="md:col-span-2"><label className="flex items-center gap-3 text-sm font-semibold"><input type="checkbox" checked={showScores} onChange={e=>setShowScores(e.target.checked)} className="h-4 w-4"/> Show live candidate vote counts while voting is open</label><p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Off by default to better protect ballot secrecy. Enabling live counts can make individual choices easier to infer in small elections.</p></div>
         <button disabled={saving} className="rounded-xl bg-indigo-700 px-5 py-3 text-sm font-bold text-white disabled:opacity-50 md:col-span-2">{saving?'Creating…':'Create election draft'}</button>
       </form>
     </section>}

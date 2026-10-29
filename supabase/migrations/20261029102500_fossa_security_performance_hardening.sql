@@ -25,6 +25,8 @@ create index if not exists fossa_election_audit_actor_idx
 create index if not exists fossa_level_advisors_assigned_by_idx
   on public.fossa_level_advisors(assigned_by);
 
+alter table public.fossa_elections alter column show_live_scores set default false;
+
 -- The auth.users trigger remains owned by the database owner. Prevent direct invocation
 -- through exposed PostgREST roles; trigger execution does not require these roles to call it.
 revoke all on function public.fossa_bootstrap_auth_user() from public, anon, authenticated;
