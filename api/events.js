@@ -66,15 +66,17 @@ export default async function eventsHandler(req, res) {
     if (eventError) throw eventError;
     if (!event) return send(res, 404, { error: 'This event is no longer published.' });
 
-    const dateValue = event.payload?.date;
-    if (dateValue) {
-      const eventDate = new Date(dateValue);
-      if (!Number.isNaN(eventDate.getTime()) && eventDate.getTime() < Date.now()) {
-        return send(res, 409, { error: 'Registration is closed because this event has already passed.' });
-      }
-    }
-
     if (req.method === 'POST') {
+      const dateValue = event.payload?.date;
+      if (dateValue) {
+        const textDate = String(dateValue).trim();
+        const parsedDate = /^\\d{4}-\\d{2}-\\d{2}$/.test(textDate)
+          ? new Date(textDate + 'T23:59:59.999Z').getTime()
+          : new Date(textDate).getTime();
+        if (Number.isFinite(parsedDate) && parsedDate < Date.now()) {
+          return send(res, 409, { error: 'Registration is closed because this event has already passed.' });
+        }
+      }
       const { error } = await db.from('fossa_event_registrations').insert({ event_id: eventId, user_id: user.id });
       if (error?.code === '23505') return send(res, 409, { error: 'You are already registered for this event.' });
       if (error) throw error;
