@@ -111,7 +111,7 @@ export const ProfilePage = () => {
             <AnimateIn direction="down" delay={0.05} className="mb-7">
                 <Link to="/dashboard" className="text-sm font-bold text-indigo-600 hover:text-indigo-800 dark:text-indigo-400">← Back to dashboard</Link>
                 <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white"><AnimatedText text="Your profile" /></h1>
-                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Keep your personal and academic details up to date.</p>
+                <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Keep your personal details up to date. Verified academic information is managed by FOSSA administration.</p>
             </AnimateIn>
 
             {!user && !error && <p className="rounded-xl bg-slate-100 p-4 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">Loading your profile…</p>}
