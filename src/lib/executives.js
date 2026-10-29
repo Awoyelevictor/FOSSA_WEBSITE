@@ -7,8 +7,8 @@ export async function getPublishedExecutives() {
     .map(item => {
       const category = String(item.category || '').trim();
       const title = category
-        .replace(/^fossa\\s+/i, '')
-        .replace(/^executives?\\s*[:—–-]?\\s*/i, '')
+        .replace(/^fossa\s+/i, '')
+        .replace(/^executives?\s*[:—–-]?\s*/i, '')
         .trim();
       return {
         ...item,
