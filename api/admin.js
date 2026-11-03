@@ -47,7 +47,6 @@ export default async function adminHandler(req, res) {
     };
     const grantExecutiveEditor = async (resolved, executiveId) => {
       if (!resolved) return null;
-      if (['admin', 'super_admin', 'editor'].includes(resolved.role)) return { email: resolved.email, role: resolved.role, granted: false };
       const { error: grantError } = await db.from('fossa_content_editor_access').upsert({
         user_id: resolved.account.id, granted_by: actor.id, source: 'executive_profile:' + String(executiveId || 'new')
       }, { onConflict: 'user_id' });
