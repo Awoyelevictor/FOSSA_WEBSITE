@@ -65,7 +65,7 @@ export default async function adminHandler(req, res) {
       const usersByEmail=new Map((users?.users||[]).map(user=>[String(user.email||'').trim().toLowerCase(),user]));
       const active=new Map();
       for(const item of profiles||[]){
-        if(!/^executive\\b/i.test(String(item.payload?.category||'')))continue;
+        if(!/^executive\b/i.test(String(item.payload?.category||'')))continue;
         const email=String(item.payload?.account_email||'').trim().toLowerCase();
         const account=usersByEmail.get(email);
         if(account)active.set(account.id,item.id);
