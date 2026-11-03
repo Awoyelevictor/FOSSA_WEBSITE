@@ -2,6 +2,24 @@ import { createClient } from '@supabase/supabase-js';
 
 const send = (res, status, body) => res.status(status).json(body);
 const clean = value => String(value ?? '').trim();
+const eventEndTimestamp = value => {
+  const text = clean(value);
+  if (!text) return null;
+  const parts = text.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/);
+  let date;
+  if (parts) {
+    const day = Number(parts[1]), month = Number(parts[2]);
+    const year = Number(parts[3]) < 100 ? Number(parts[3]) + 2000 : Number(parts[3]);
+    const hasTime = parts[4] !== undefined;
+    date = new Date(Date.UTC(year, month - 1, day, hasTime ? Number(parts[4]) : 23, hasTime ? Number(parts[5]) : 59, hasTime ? Number(parts[6] || 0) : 59, hasTime ? 0 : 999));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  } else {
+    date = new Date(text);
+    if (Number.isNaN(date.getTime())) return null;
+    if (!/(?:T\d{2}:?\d{2}|\b\d{1,2}:\d{2}\b)/i.test(text)) date.setUTCHours(23, 59, 59, 999);
+  }
+  return date.getTime();
+};
 
 export default async function eventsHandler(req, res) {
   if (req.method === 'OPTIONS') return res.status(204).end();
@@ -67,16 +85,9 @@ export default async function eventsHandler(req, res) {
     if (!event) return send(res, 404, { error: 'This event is no longer published.' });
 
     if (req.method === 'POST') {
-      const dateValue = event.payload?.date;
-      if (dateValue) {
-        const textDate = String(dateValue).trim();
-        const parsed = new Date(textDate);
-        const hasExplicitTime = /(?:T\d{2}:?\d{2}|\b\d{1,2}:\d{2}\b)/i.test(textDate);
-        if (!Number.isNaN(parsed.getTime()) && !hasExplicitTime) parsed.setUTCHours(23, 59, 59, 999);
-        const parsedDate = parsed.getTime();
-        if (Number.isFinite(parsedDate) && parsedDate < Date.now()) {
-          return send(res, 409, { error: 'Registration is closed because this event has already passed.' });
-        }
+      const parsedDate = eventEndTimestamp(event.payload?.date);
+      if (parsedDate !== null && parsedDate < Date.now()) {
+        return send(res, 409, { error: 'Registration is closed because this event has already passed.' });
       }
       const { error } = await db.from('fossa_event_registrations').insert({ event_id: eventId, user_id: user.id });
       if (error?.code === '23505') return send(res, 409, { error: 'You are already registered for this event.' });

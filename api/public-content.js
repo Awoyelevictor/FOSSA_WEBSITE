@@ -16,7 +16,12 @@ export default async function publicContentHandler(req, res) {
       .select('id,content_type,payload,published,created_at,updated_at')
       .eq('content_type', type).eq('published', true).order('updated_at', { ascending: false });
     if (error) throw error;
-    return send(res, 200, { items: (data || []).map(item => ({ id: item.id, ...item.payload, payload: item.payload, created_at: item.created_at, updated_at: item.updated_at })) });
+    return send(res, 200, { items: (data || []).map(item => {
+      const payload = { ...(item.payload || {}) };
+      // Executive account emails are private admin metadata, never public profile fields.
+      if (type === 'site-content') delete payload.account_email;
+      return { id: item.id, ...payload, payload, created_at: item.created_at, updated_at: item.updated_at };
+    }) });
   } catch (error) {
     console.error('Published FOSSA content read failed:', error?.message || error);
     return send(res, 500, { error: 'Could not load published content right now.' });
