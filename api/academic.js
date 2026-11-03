@@ -71,11 +71,14 @@ export default async function academicHandler(req,res){
     seen.add(studentNumber);normalized.push({studentNumber,department:dept,level:numericLevel});
    }
    const imported=[],unmatched=[],matched=[];
+   const{data:accounts,error:accountsError}=await db.from('fossa_user_roles')
+    .select('user_id,matric_number').in('matric_number',normalized.map(item=>item.studentNumber));
+   if(accountsError)throw accountsError;
+   const accountByMatric=new Map((accounts||[]).map(account=>[String(account.matric_number||'').toUpperCase().replace(/\\s+/g,''),account.user_id]));
    for(const item of normalized){
-    const{data:account,error:accountError}=await db.from('fossa_user_roles').select('user_id').eq('matric_number',item.studentNumber).maybeSingle();
-    if(accountError)throw accountError;
-    if(!account){unmatched.push(item.studentNumber);continue;}
-    matched.push({user_id:account.user_id,student_number:item.studentNumber,department:item.department,level:item.level,updated_at:new Date().toISOString()});
+    const userId=accountByMatric.get(item.studentNumber);
+    if(!userId){unmatched.push(item.studentNumber);continue;}
+    matched.push({user_id:userId,student_number:item.studentNumber,department:item.department,level:item.level,updated_at:new Date().toISOString()});
    }
    if(matched.length){
     const{data:existing,error:existingError}=await db.from('fossa_academic_students').select('user_id,student_number').in('student_number',matched.map(item=>item.student_number));
