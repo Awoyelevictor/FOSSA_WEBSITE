@@ -9,6 +9,7 @@ import publicContentHandler from "./api/public-content.js";
 import lecturerHandler from "./api/lecturer.js";
 import lecturerUploadHandler from "./api/lecturer-upload.js";
 import electionsHandler from "./api/elections.js";
+import electionUploadHandler from "./api/election-upload.js";
 import eventsHandler from "./api/events.js";
 async function startServer() {
   const app = express();
@@ -37,6 +38,7 @@ async function startServer() {
   app.all("/api/public/content", publicContentHandler);
   app.all("/api/lecturer", lecturerHandler);
   app.all("/api/lecturer/upload", lecturerUploadHandler);
+  app.all("/api/election-upload", electionUploadHandler);
   app.all("/api/elections", electionsHandler);
   app.all("/api/elections/*", electionsHandler);
   app.all("/api/events", eventsHandler);
