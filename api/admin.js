@@ -27,6 +27,31 @@ export default async function adminHandler(req, res) {
     const superAdmin=profile.role==='super_admin';
     const admin=superAdmin||profile.role==='admin';
     const audit=async(action,entity,entityId,details={})=>{await db.from('fossa_admin_audit_logs').insert({actor_id:actor.id,actor_email:actor.email,action,entity_type:entity,entity_id:entityId==null?null:String(entityId),details});};
+    const grantExecutiveEditor = async payload => {
+      if (!/executive/i.test(String(payload?.category || ''))) return null;
+      const email = String(payload.account_email || '').trim().toLowerCase();
+      if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+        throw Object.assign(new Error('Add the executive’s registered FOSSA account email to grant content-editor access automatically.'), { status: 400 });
+      }
+      const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (usersError) throw usersError;
+      const account = (users?.users || []).find(item => String(item.email || '').toLowerCase() === email);
+      if (!account) throw Object.assign(new Error('No FOSSA account exists for this email. Invite the executive as a student first, then publish the profile.'), { status: 400 });
+      const { data: existing, error: roleError } = await db.from('fossa_user_roles').select('role,display_name').eq('user_id', account.id).maybeSingle();
+      if (roleError) throw roleError;
+      if (['admin', 'super_admin', 'editor'].includes(existing?.role)) return { email, role: existing.role, granted: false };
+      if (existing?.role === 'lecturer') {
+        throw Object.assign(new Error('This account already has the Lecturer role. It has been left unchanged to protect lecturer workspace access.'), { status: 409 });
+      }
+      const { error: grantError } = await db.from('fossa_user_roles').upsert({
+        user_id: account.id,
+        role: 'editor',
+        display_name: existing?.display_name || account.user_metadata?.display_name || account.user_metadata?.full_name || ''
+      });
+      if (grantError) throw grantError;
+      await audit('executive_editor_granted', 'user', account.id, { email, source: 'published executive profile' });
+      return { email, role: 'editor', granted: true };
+    };
     if(section==='content'){
       if(!TYPES.has(type)) return send(res,400,{error:'Unknown content section.'});
       if(req.method==='GET'){
@@ -38,8 +63,9 @@ export default async function adminHandler(req, res) {
       if(req.method==='POST'){
         const payload=req.body?.payload;
         if(!payload||typeof payload!=='object'||Array.isArray(payload)||!String(payload.title||'').trim())return send(res,400,{error:'A title is required.'});
+        const executiveAccess=type==='site-content'&&req.body.published&&/executive/i.test(String(payload.category||''))?await grantExecutiveEditor(payload):null;
         const {data,error}=await db.from('fossa_content_items').insert({content_type:type,payload,published:Boolean(req.body.published),created_by:actor.id,updated_by:actor.id}).select('*').single();
-        if(error)throw error;await audit('create',type,data.id,{title:payload.title});return send(res,201,{item:data});
+        if(error)throw error;await audit('create',type,data.id,{title:payload.title});return send(res,201,{item:data,executiveAccess});
       }
       if(!id)return send(res,400,{error:'Content ID is required.'});
       if(req.method==='DELETE'){
@@ -50,8 +76,14 @@ export default async function adminHandler(req, res) {
       const updates={updated_by:actor.id,updated_at:new Date().toISOString()};
       if(req.body?.payload!==undefined){if(!req.body.payload||typeof req.body.payload!=='object'||Array.isArray(req.body.payload)||!String(req.body.payload.title||'').trim())return send(res,400,{error:'A title is required.'});updates.payload=req.body.payload;}
       if(typeof req.body?.published==='boolean')updates.published=req.body.published;
+      const {data:currentItem,error:currentError}=await db.from('fossa_content_items').select('payload,published').eq('id',id).eq('content_type',type).maybeSingle();
+      if(currentError)throw currentError;
+      if(!currentItem)return send(res,404,{error:'Content item not found.'});
+      const nextPayload=updates.payload||currentItem.payload;
+      const nextPublished=typeof updates.published==='boolean'?updates.published:currentItem.published;
+      const executiveAccess=type==='site-content'&&nextPublished&&/executive/i.test(String(nextPayload?.category||''))?await grantExecutiveEditor(nextPayload):null;
       const {data,error}=await db.from('fossa_content_items').update(updates).eq('id',id).eq('content_type',type).select('*').single();
-      if(error)throw error;await audit('update',type,id,{title:data.payload?.title||''});return send(res,200,{item:data});
+      if(error)throw error;await audit('update',type,id,{title:data.payload?.title||''});return send(res,200,{item:data,executiveAccess});
     }
     if(section==='users'){
       if(!admin)return send(res,403,{error:'Only admins can manage student accounts.'});
