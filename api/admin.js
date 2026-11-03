@@ -32,9 +32,9 @@ export default async function adminHandler(req, res) {
     const admin=superAdmin||profile.role==='admin';
     const audit=async(action,entity,entityId,details={})=>{await db.from('fossa_admin_audit_logs').insert({actor_id:actor.id,actor_email:actor.email,action,entity_type:entity,entity_id:entityId==null?null:String(entityId),details});};
     const findExecutiveAccount = async payload => {
-      if (!/^executive\\b/i.test(String(payload?.category || ''))) return null;
+      if (!/^executive\b/i.test(String(payload?.category || ''))) return null;
       const email = String(payload.account_email || '').trim().toLowerCase();
-      if (!email || !/^\\S+@\\S+\\.\\S+$/.test(email)) {
+      if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
         throw Object.assign(new Error('Add the executive’s registered FOSSA account email to grant content-editor access automatically.'), { status: 400 });
       }
       const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
@@ -56,9 +56,9 @@ export default async function adminHandler(req, res) {
       return { email: resolved.email, role: resolved.role, can_edit_content: true, granted: true };
     };
     const revokeExecutiveEditor = async payload => {
-      if (!/^executive\\b/i.test(String(payload?.category || ''))) return;
+      if (!/^executive\b/i.test(String(payload?.category || ''))) return;
       const email = String(payload.account_email || '').trim().toLowerCase();
-      if (!/^\\S+@\\S+\\.\\S+$/.test(email)) return;
+      if (!/^\S+@\S+\.\S+$/.test(email)) return;
       const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
       if (usersError) throw usersError;
       const account = (users?.users || []).find(item => String(item.email || '').trim().toLowerCase() === email);
@@ -92,7 +92,7 @@ export default async function adminHandler(req, res) {
       if(req.method==='POST'){
         const payload=req.body?.payload;
         if(!payload||typeof payload!=='object'||Array.isArray(payload)||!String(payload.title||'').trim())return send(res,400,{error:'A title is required.'});
-        const publishedExecutive=type==='site-content'&&Boolean(req.body.published)&&/^executive\\b/i.test(String(payload.category||''));
+        const publishedExecutive=type==='site-content'&&Boolean(req.body.published)&&/^executive\b/i.test(String(payload.category||''));
         const resolvedExecutive=publishedExecutive?await findExecutiveAccount(payload):null;
         const {data,error}=await db.from('fossa_content_items').insert({content_type:type,payload,published:Boolean(req.body.published),created_by:actor.id,updated_by:actor.id}).select('*').single();
         if(error)throw error;
@@ -120,7 +120,7 @@ export default async function adminHandler(req, res) {
       if(!currentItem)return send(res,404,{error:'Content item not found.'});
       const nextPayload=updates.payload||currentItem.payload;
       const nextPublished=typeof updates.published==='boolean'?updates.published:currentItem.published;
-      const publishedExecutive=type==='site-content'&&nextPublished&&/^executive\\b/i.test(String(nextPayload?.category||''));
+      const publishedExecutive=type==='site-content'&&nextPublished&&/^executive\b/i.test(String(nextPayload?.category||''));
       const resolvedExecutive=publishedExecutive?await findExecutiveAccount(nextPayload):null;
       const {data,error}=await db.from('fossa_content_items').update(updates).eq('id',id).eq('content_type',type).select('*').single();
       if(error)throw error;
@@ -129,7 +129,7 @@ export default async function adminHandler(req, res) {
         try{executiveAccess=await grantExecutiveEditor(resolvedExecutive,id);}
         catch(grantError){await db.from('fossa_content_items').update({payload:currentItem.payload,published:currentItem.published}).eq('id',id);throw grantError;}
       }
-      const oldWasExecutive=type==='site-content'&&currentItem.published&&/^executive\\b/i.test(String(currentItem.payload?.category||''));
+      const oldWasExecutive=type==='site-content'&&currentItem.published&&/^executive\b/i.test(String(currentItem.payload?.category||''));
       const sameExecutive=publishedExecutive&&String(currentItem.payload?.account_email||'').trim().toLowerCase()===String(nextPayload?.account_email||'').trim().toLowerCase();
       if(oldWasExecutive&&!sameExecutive)await revokeExecutiveEditor(currentItem.payload);
       await audit('update',type,id,{title:data.payload?.title||''});return send(res,200,{item:data,executiveAccess});
