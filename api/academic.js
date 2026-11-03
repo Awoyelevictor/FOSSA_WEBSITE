@@ -74,7 +74,7 @@ export default async function academicHandler(req,res){
    const{data:accounts,error:accountsError}=await db.from('fossa_user_roles')
     .select('user_id,matric_number').in('matric_number',normalized.map(item=>item.studentNumber));
    if(accountsError)throw accountsError;
-   const accountByMatric=new Map((accounts||[]).map(account=>[String(account.matric_number||'').toUpperCase().replace(/\\s+/g,''),account.user_id]));
+   const accountByMatric=new Map((accounts||[]).map(account=>[String(account.matric_number||'').toUpperCase().replace(/\s+/g,''),account.user_id]));
    for(const item of normalized){
     const userId=accountByMatric.get(item.studentNumber);
     if(!userId){unmatched.push(item.studentNumber);continue;}
