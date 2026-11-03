@@ -61,7 +61,9 @@ async function startServer() {
       if (!shuttingDown) { electionFinalizerTimer = setTimeout(runElectionFinalizer, 30000); electionFinalizerTimer.unref?.(); }
     }
   };
-  server.once("listening", () => { electionFinalizerTimer = setTimeout(runElectionFinalizer, 30000); electionFinalizerTimer.unref?.(); });
+  const scheduleElectionFinalizer = () => { electionFinalizerTimer = setTimeout(runElectionFinalizer, 30000); electionFinalizerTimer.unref?.(); };
+  if (server.listening) scheduleElectionFinalizer();
+  else server.once("listening", scheduleElectionFinalizer);
   const shutdown = signal => {
     if (shuttingDown) return;
     shuttingDown = true;
