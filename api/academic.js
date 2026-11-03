@@ -63,7 +63,7 @@ export default async function academicHandler(req,res){
    if(!records.length||records.length>5000)return send(res,400,{error:'Upload between 1 and 5,000 student records per batch.'});
    const normalized=[],seen=new Set();
    for(const item of records){
-    const studentNumber=String(item?.student_number||item?.matric_number||'').trim().toUpperCase();
+    const studentNumber=String(item?.student_number||item?.matric_number||'').trim().toUpperCase().replace(/\\s+/g,'');
     const dept=String(item?.department||'').trim();
     const numericLevel=Number(item?.level);
     if(!studentNumber||studentNumber.length>80||!dept||dept.length>120||!levels.has(numericLevel))return send(res,400,{error:'Each row needs a matric number, department, and valid level (100–600).'});
