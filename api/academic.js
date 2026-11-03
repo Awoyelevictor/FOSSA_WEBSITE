@@ -57,6 +57,41 @@ export default async function academicHandler(req,res){
    }
    return send(res,405,{error:'Method not allowed.'});
   }
+  if(path[0]==='students'&&req.method==='POST'){
+   if(!['admin','super_admin'].includes(profile.role))return send(res,403,{error:'Only administrators can import verified academic records.'});
+   const records=Array.isArray(req.body?.records)?req.body.records:[];
+   if(!records.length||records.length>5000)return send(res,400,{error:'Upload between 1 and 5,000 student records per batch.'});
+   const normalized=[],seen=new Set();
+   for(const item of records){
+    const studentNumber=String(item?.student_number||item?.matric_number||'').trim().toUpperCase();
+    const dept=String(item?.department||'').trim();
+    const numericLevel=Number(item?.level);
+    if(!studentNumber||studentNumber.length>80||!dept||dept.length>120||!levels.has(numericLevel))return send(res,400,{error:'Each row needs a matric number, department, and valid level (100–600).'});
+    if(seen.has(studentNumber))return send(res,400,{error:'The import contains a duplicate matric number: '+studentNumber});
+    seen.add(studentNumber);normalized.push({studentNumber,department:dept,level:numericLevel});
+   }
+   const imported=[],unmatched=[],matched=[];
+   for(const item of normalized){
+    const{data:account,error:accountError}=await db.from('fossa_user_roles').select('user_id').eq('matric_number',item.studentNumber).maybeSingle();
+    if(accountError)throw accountError;
+    if(!account){unmatched.push(item.studentNumber);continue;}
+    matched.push({user_id:account.user_id,student_number:item.studentNumber,department:item.department,level:item.level,updated_at:new Date().toISOString()});
+   }
+   if(matched.length){
+    const{data:existing,error:existingError}=await db.from('fossa_academic_students').select('user_id,student_number').in('student_number',matched.map(item=>item.student_number));
+    if(existingError)throw existingError;
+    const conflicting=(existing||[]).filter(row=>!matched.some(item=>item.user_id===row.user_id&&item.student_number===row.student_number));
+    if(conflicting.length)return send(res,409,{error:'One or more matric numbers are already linked to a different account. Resolve the duplicate records before importing.'});
+    const{error:upsertError}=await db.from('fossa_academic_students').upsert(matched,{onConflict:'user_id'});
+    if(upsertError)throw upsertError;
+    imported.push(...matched.map(item=>item.student_number));
+   }
+   await db.from('fossa_admin_audit_logs').insert({
+    actor_id:user.id,actor_email:user.email,action:'import_academic_students',entity_type:'academic_students',
+    details:{submitted:normalized.length,imported:imported.length,unmatched:unmatched.length}
+   });
+   return send(res,200,{success:true,submitted:normalized.length,imported:imported.length,unmatched,unmatchedCount:unmatched.length});
+  }
   if(path[0]==='students'&&req.method==='GET'){
    if(!['lecturer','super_admin','admin'].includes(profile.role))return send(res,403,{error:'Academic records are available to assigned Level Advisors and administrators.'});
    let cohortQuery=db.from('fossa_level_advisors').select('department,level').eq('active',true);
