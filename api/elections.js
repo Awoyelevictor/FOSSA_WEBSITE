@@ -124,7 +124,13 @@ export default async function electionsHandler(req, res) {
         const row = await finalize(item);
         elections.push(await publicElection(row));
       }
-      return send(res, 200, { elections });
+      let readiness = null;
+      if (admin) {
+        const { count, error: readinessError } = await db.from('fossa_academic_students').select('user_id', { count: 'exact', head: true });
+        if (readinessError) throw readinessError;
+        readiness = { verifiedStudents: count || 0 };
+      }
+      return send(res, 200, { elections, readiness });
     }
     if (!electionId) {
       if (req.method !== 'POST' || !admin) return send(res, 403, { error: 'Only administrators can create elections.' });
