@@ -54,8 +54,8 @@ export default async function electionsHandler(req, res) {
       const { data, error } = await db.from('fossa_election_cohorts').select('department,level').eq('election_id', id);
       if (error) throw error;
       return (data || []).some(c => {
-        const cohortDepartment = clean(c.department).toLowerCase().replace(/\\s+/g, ' ');
-        const studentDepartment = clean(s.department).toLowerCase().replace(/\\s+/g, ' ');
+        const cohortDepartment = clean(c.department).toLowerCase().replace(/\s+/g, ' ');
+        const studentDepartment = clean(s.department).toLowerCase().replace(/\s+/g, ' ');
         const allDepartments = ['all department', 'all departments', 'all faculty', 'all faculties', '*'].includes(cohortDepartment);
         return (allDepartments || cohortDepartment === studentDepartment) && Number(c.level) === Number(s.level);
       });
