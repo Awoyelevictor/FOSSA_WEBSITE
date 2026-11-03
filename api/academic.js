@@ -70,16 +70,21 @@ export default async function academicHandler(req,res){
     if(seen.has(studentNumber))return send(res,400,{error:'The import contains a duplicate matric number: '+studentNumber});
     seen.add(studentNumber);normalized.push({studentNumber,department:dept,level:numericLevel});
    }
-   const imported=[],unmatched=[];
+   const imported=[],unmatched=[],matched=[];
    for(const item of normalized){
     const{data:account,error:accountError}=await db.from('fossa_user_roles').select('user_id').eq('matric_number',item.studentNumber).maybeSingle();
     if(accountError)throw accountError;
     if(!account){unmatched.push(item.studentNumber);continue;}
-    const{error:upsertError}=await db.from('fossa_academic_students').upsert({
-     user_id:account.user_id,student_number:item.studentNumber,department:item.department,level:item.level,updated_at:new Date().toISOString()
-    },{onConflict:'user_id'});
+    matched.push({user_id:account.user_id,student_number:item.studentNumber,department:item.department,level:item.level,updated_at:new Date().toISOString()});
+   }
+   if(matched.length){
+    const{data:existing,error:existingError}=await db.from('fossa_academic_students').select('user_id,student_number').in('student_number',matched.map(item=>item.student_number));
+    if(existingError)throw existingError;
+    const conflicting=(existing||[]).filter(row=>!matched.some(item=>item.user_id===row.user_id&&item.student_number===row.student_number));
+    if(conflicting.length)return send(res,409,{error:'One or more matric numbers are already linked to a different account. Resolve the duplicate records before importing.'});
+    const{error:upsertError}=await db.from('fossa_academic_students').upsert(matched,{onConflict:'user_id'});
     if(upsertError)throw upsertError;
-    imported.push(item.studentNumber);
+    imported.push(...matched.map(item=>item.student_number));
    }
    await db.from('fossa_admin_audit_logs').insert({
     actor_id:user.id,actor_email:user.email,action:'import_academic_students',entity_type:'academic_students',
