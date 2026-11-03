@@ -17,9 +17,9 @@ export default async function profileHandler(req,res){
   if(profile.role==='super_admin' && email!=='fossaadelekeuniversity@gmail.com')return send(res,403,{error:'Super Admin access is restricted to the designated FOSSA account.'});
   const { data: executiveProfile, error: executiveError } = await db.from('fossa_content_items')
     .select('id').eq('content_type','site-content').eq('published',true)
-    .eq('payload->>executive_user_id',auth.user.id).limit(1).maybeSingle();
+    .eq('payload->>executive_user_id',auth.user.id).ilike('payload->>category','Executive%').limit(1).maybeSingle();
   if(executiveError)throw executiveError;
   const canEditContent=['editor','admin','super_admin'].includes(profile.role)||Boolean(executiveProfile);
-  return send(res,200,{role:profile.role,display_name:profile.display_name||'',canEditContent,isExecutiveEditor:Boolean(executiveProfile)});
+  return send(res,200,{role:profile.role,display_name:profile.display_name||'',canEditContent,isExecutiveEditor:Boolean(executiveProfile)&&!['admin','super_admin'].includes(profile.role)});
  }catch(error){console.error('FOSSA profile lookup failed:',error);return send(res,500,{error:'Could not verify your account. Please try again.'});}
 }
