@@ -85,7 +85,9 @@ export default async function eventsHandler(req, res) {
     if (!event) return send(res, 404, { error: 'This event is no longer published.' });
 
     if (req.method === 'POST') {
-      const parsedDate = eventEndTimestamp(event.payload?.date);
+      const rawDate = clean(event.payload?.date);
+      const parsedDate = eventEndTimestamp(rawDate);
+      if (rawDate && parsedDate === null) return send(res, 409, { error: 'This event has an invalid date. Please contact FOSSA administration.' });
       if (parsedDate !== null && parsedDate < Date.now()) {
         return send(res, 409, { error: 'Registration is closed because this event has already passed.' });
       }
