@@ -19,7 +19,14 @@ export default async function adminHandler(req, res) {
     const actorEmail=String(actor.email||'').trim().toLowerCase();
     const {data:profile,error:profileError}=await db.from('fossa_user_roles').select('role,display_name').eq('user_id',actor.id).maybeSingle();
     if(profileError){console.error('FOSSA admin role query failed:',{code:profileError.code,message:profileError.message,details:profileError.details,hint:profileError.hint,host:(()=>{try{return new URL(url).host}catch{return 'invalid-url'}})()});return send(res,503,{error:'Could not verify role. Check the Supabase project URL, service-role key, and function logs.'});}
-    if(!profile || !['editor','admin','super_admin'].includes(profile.role)) return send(res,403,{error:'This account has no FOSSA admin access.'});
+    if(!profile) return send(res,403,{error:'This account has no FOSSA admin access.'});
+    const {data: executiveProfile,error:executiveError}=await db.from('fossa_content_items')
+      .select('id,payload').eq('content_type','site-content').eq('published',true)
+      .eq('payload->>executive_user_id',actor.id).limit(1).maybeSingle();
+    if(executiveError)throw executiveError;
+    const isExecutiveEditor=Boolean(executiveProfile);
+    const canEditContent=['editor','admin','super_admin'].includes(profile.role)||isExecutiveEditor;
+    if(!canEditContent)return send(res,403,{error:'This account has no FOSSA content-editor access.'});
     // Enforce the sole Super Admin identity on every server request.
     if(profile.role==='super_admin' && actorEmail!==SUPER_ADMIN_EMAIL) return send(res,403,{error:'Super Admin access is restricted to the designated FOSSA account.'});
     const parts=new URL(req.url,'http://localhost').pathname.replace(/^\/api\/admin\/?/,'').split('/').filter(Boolean);
@@ -32,9 +39,31 @@ export default async function adminHandler(req, res) {
       if(req.method==='GET'){
         let q=db.from('fossa_content_items').select('*').eq('content_type',type).order('updated_at',{ascending:false});
         if(new URL(req.url,'http://localhost').searchParams.get('published')==='true') q=q.eq('published',true);
+        if(isExecutiveEditor&&type==='site-content')q=q.eq('id',executiveProfile.id);
         const {data,error}=await q;if(error)throw error;return send(res,200,{items:data||[]});
       }
-      if(profile.role==='editor' && type==='site-content') return send(res,403,{error:'Only administrators can edit site-wide content.'});
+      if(isExecutiveEditor&&type==='site-content'){
+        if(!id||!['PUT','PATCH'].includes(req.method))return send(res,403,{error:'Executive editors can only update their own published profile.'});
+        const {data:existing,error:existingError}=await db.from('fossa_content_items').select('id,payload,published')
+          .eq('id',id).eq('content_type','site-content').maybeSingle();
+        if(existingError)throw existingError;
+        if(!existing||existing.id!==executiveProfile.id||existing.payload?.executive_user_id!==actor.id)return send(res,404,{error:'Your assigned executive profile was not found.'});
+        const submitted=req.body?.payload||{};
+        const payload={...existing.payload};
+        for(const key of ['description','image','url']){
+          if(submitted[key]!==undefined){
+            if(typeof submitted[key]!=='string'||submitted[key].length>5000)return send(res,400,{error:'Executive profile fields must be text under 5,000 characters.'});
+            payload[key]=submitted[key].trim();
+          }
+        }
+        const {data,error}=await db.from('fossa_content_items').update({payload,updated_by:actor.id,updated_at:new Date().toISOString()})
+          .eq('id',id).eq('content_type','site-content').select('*').single();
+        if(error)throw error;
+        await audit('update_own_executive_profile','site-content',id,{});
+        return send(res,200,{item:data});
+      }
+      if(profile.role==='editor' && type==='site-content') return send(res,403,{error:'Only administrators can create or edit general site-wide content.'});
+      if(isExecutiveEditor&&type==='site-content')return send(res,403,{error:'You can only edit your assigned executive profile.'});
       if(req.method==='POST'){
         const payload=req.body?.payload;
         if(!payload||typeof payload!=='object'||Array.isArray(payload)||!String(payload.title||'').trim())return send(res,400,{error:'A title is required.'});
