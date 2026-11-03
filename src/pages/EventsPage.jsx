@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { CalendarDays, MapPin, Search } from 'lucide-react';
+import { CalendarDays, MapPin, Search, Vote, ChevronRight } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { supabase } from '../lib/adminApi';
 import { getEvents, setEventRegistration } from '../lib/eventsApi';
 import { eventDateLabel, filterEventsByTab, isEventPast } from '../lib/eventUtils';
@@ -8,6 +9,7 @@ import { AnimateIn, AnimatedText } from '../components/AnimateLoad';
 export const EventsPage = () => {
   const [session, setSession] = useState(null);
   const [events, setEvents] = useState([]);
+  const [elections, setElections] = useState([]);
   const [tab, setTab] = useState('All Events');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -26,8 +28,11 @@ export const EventsPage = () => {
     setLoading(true);
     setError('');
     try {
-      const result = await getEvents(session);
+      const [result, electionResponse] = await Promise.all([getEvents(session), fetch('/api/elections')]);
       setEvents(result.items);
+      const electionData = await electionResponse.json().catch(() => ({}));
+      if (!electionResponse.ok) throw new Error(electionData.error || 'Could not load published elections.');
+      setElections(electionData.elections || []);
     } catch (e) {
       setError(e.message || 'Could not load events.');
     } finally {
@@ -62,6 +67,10 @@ export const EventsPage = () => {
       <h1 className="text-2xl font-bold text-slate-900 dark:text-white"><AnimatedText text="Events"/></h1>
       <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Browse official events and manage registrations saved to your account.</p>
     </AnimateIn>
+    {elections.length>0&&<section className="mb-5 rounded-3xl border border-indigo-100 bg-indigo-50/70 p-5 dark:border-indigo-900/50 dark:bg-indigo-950/20 md:p-6">
+      <div className="mb-4 flex items-center justify-between gap-3"><div><p className="text-xs font-extrabold uppercase tracking-wider text-indigo-600 dark:text-indigo-300">Student democracy</p><h2 className="mt-1 text-xl font-black text-slate-900 dark:text-white">Published elections</h2><p className="mt-1 text-sm text-slate-600 dark:text-slate-300">View candidates, register to contest and vote when polls open.</p></div><Vote className="h-8 w-8 shrink-0 text-indigo-600 dark:text-indigo-300"/></div>
+      <div className="grid gap-3 md:grid-cols-2">{elections.map(election=><Link key={election.id} to={'/elections/'+election.id} className="flex items-center justify-between gap-3 rounded-2xl border border-indigo-100 bg-white p-4 transition hover:border-indigo-400 dark:border-slate-700 dark:bg-slate-900"><div className="min-w-0"><h3 className="truncate font-bold text-slate-900 dark:text-white">{election.title}</h3><p className="mt-1 text-xs text-slate-500">{election.status==='results_published'?'Official results published':election.status==='published'?'Registration and voting dates inside':'Election notice'}</p></div><ChevronRight className="shrink-0 text-indigo-600"/></Link>)}</div>
+    </section>}
     <section className="rounded-3xl border border-slate-100 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-7">
       <div className="mb-5 grid gap-3 md:grid-cols-[1fr_auto]">
         <label className="relative block"><Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search events…" className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3 pl-10 pr-4 text-sm outline-none dark:border-slate-700 dark:bg-slate-800 dark:text-white"/></label>
