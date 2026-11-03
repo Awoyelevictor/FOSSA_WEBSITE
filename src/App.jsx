@@ -3,37 +3,42 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { DashboardLayout } from './layout/DashboardLayout';
-import { PublicLayout } from './layout/PublicLayout';
-import { DashboardPage } from './pages/DashboardPage';
-import { AboutPage } from './pages/AboutPage';
-import { HomePage } from './pages/HomePage';
-import { ResourcesPage } from './pages/ResourcesPage';
-import { GPACalculatorPage } from './pages/GPACalculatorPage';
-import { EventsPage } from './pages/EventsPage';
-import { AnnouncementsPage } from './pages/AnnouncementsPage';
-import { PastQuestionsPage } from './pages/PastQuestionsPage';
-import { ProfilePage } from './pages/ProfilePage';
-import { SettingsPage } from './pages/SettingsPage';
-import { MorePage } from './pages/MorePage';
-import { HelpPage } from './pages/HelpPage';
-import { LectureNotesPage } from './pages/LectureNotesPage';
-import { CourseOutlinesPage } from './pages/CourseOutlinesPage';
-import { AdminPage } from './pages/AdminPage';
-import { LoginPage, SignupPage } from './pages/AuthPages';
-import LevelAdvisorPage from './pages/LevelAdvisorPage';
-import AcademicAdminPage from './pages/AcademicAdminPage';
-import { DepartmentsPage } from './pages/DepartmentsPage';
-import { ExecutivesPage } from './pages/ExecutivesPage';
-import { PublicEventsPage } from './pages/PublicEventsPage';
-import { GalleryPage } from './pages/GalleryPage';
-import { ContactPage } from './pages/ContactPage';
-import { NotFoundPage } from './pages/NotFoundPage';
-import ElectionsPage from './pages/ElectionsPage';
-import { TimetablePage } from './pages/TimetablePage';
-import { QuickAccessPage } from './pages/QuickAccessPage';
-import LecturerDashboardPage from './pages/LecturerDashboardPage';
+
+const lazyNamed = (loader, name) => lazy(() => loader().then(module => ({ default: module[name] })));
+
+const DashboardLayout = lazyNamed(() => import('./layout/DashboardLayout'), 'DashboardLayout');
+const PublicLayout = lazyNamed(() => import('./layout/PublicLayout'), 'PublicLayout');
+const DashboardPage = lazyNamed(() => import('./pages/DashboardPage'), 'DashboardPage');
+const AboutPage = lazyNamed(() => import('./pages/AboutPage'), 'AboutPage');
+const HomePage = lazyNamed(() => import('./pages/HomePage'), 'HomePage');
+const ResourcesPage = lazyNamed(() => import('./pages/ResourcesPage'), 'ResourcesPage');
+const GPACalculatorPage = lazyNamed(() => import('./pages/GPACalculatorPage'), 'GPACalculatorPage');
+const EventsPage = lazyNamed(() => import('./pages/EventsPage'), 'EventsPage');
+const AnnouncementsPage = lazyNamed(() => import('./pages/AnnouncementsPage'), 'AnnouncementsPage');
+const PastQuestionsPage = lazyNamed(() => import('./pages/PastQuestionsPage'), 'PastQuestionsPage');
+const ProfilePage = lazyNamed(() => import('./pages/ProfilePage'), 'ProfilePage');
+const SettingsPage = lazyNamed(() => import('./pages/SettingsPage'), 'SettingsPage');
+const MorePage = lazyNamed(() => import('./pages/MorePage'), 'MorePage');
+const HelpPage = lazyNamed(() => import('./pages/HelpPage'), 'HelpPage');
+const LectureNotesPage = lazyNamed(() => import('./pages/LectureNotesPage'), 'LectureNotesPage');
+const CourseOutlinesPage = lazyNamed(() => import('./pages/CourseOutlinesPage'), 'CourseOutlinesPage');
+const AdminPage = lazyNamed(() => import('./pages/AdminPage'), 'AdminPage');
+const LoginPage = lazyNamed(() => import('./pages/AuthPages'), 'LoginPage');
+const SignupPage = lazyNamed(() => import('./pages/AuthPages'), 'SignupPage');
+const LevelAdvisorPage = lazy(() => import('./pages/LevelAdvisorPage'));
+const AcademicAdminPage = lazy(() => import('./pages/AcademicAdminPage'));
+const DepartmentsPage = lazyNamed(() => import('./pages/DepartmentsPage'), 'DepartmentsPage');
+const ExecutivesPage = lazyNamed(() => import('./pages/ExecutivesPage'), 'ExecutivesPage');
+const PublicEventsPage = lazyNamed(() => import('./pages/PublicEventsPage'), 'PublicEventsPage');
+const GalleryPage = lazyNamed(() => import('./pages/GalleryPage'), 'GalleryPage');
+const ContactPage = lazyNamed(() => import('./pages/ContactPage'), 'ContactPage');
+const NotFoundPage = lazyNamed(() => import('./pages/NotFoundPage'), 'NotFoundPage');
+const ElectionsPage = lazy(() => import('./pages/ElectionsPage'));
+const TimetablePage = lazyNamed(() => import('./pages/TimetablePage'), 'TimetablePage');
+const QuickAccessPage = lazyNamed(() => import('./pages/QuickAccessPage'), 'QuickAccessPage');
+const LecturerDashboardPage = lazy(() => import('./pages/LecturerDashboardPage'));
 import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { BubbleBackground } from './components/animate-ui/components/backgrounds/bubble';
 
@@ -47,7 +52,7 @@ function GlobalBackground() {
 
 export default function App() {
   return <ThemeProvider><GlobalBackground /><BrowserRouter>
-    <Routes>
+    <Suspense fallback={<main className="min-h-screen px-4 py-16 text-center text-sm text-slate-500">Loading FOSSA…</main>}><Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/admin" element={<AdminPage />} />
@@ -76,6 +81,6 @@ export default function App() {
         <Route path="help" element={<HelpPage />} /><Route path="more" element={<MorePage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
-    </Routes>
+    </Routes></Suspense>
   </BrowserRouter></ThemeProvider>;
 }

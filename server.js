@@ -1,5 +1,6 @@
 import express from "express";
 import path from "path";
+import { randomUUID } from "node:crypto";
 import { createServer as createViteServer } from "vite";
 import adminHandler from "./api/admin.js";
 import profileHandler from "./api/auth/profile.js";
@@ -12,9 +13,22 @@ import eventsHandler from "./api/events.js";
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT || 3000);
+  let shuttingDown = false;
+  let electionFinalizerTimer = null;
+  let electionFinalizerRunning = false;
   app.disable("x-powered-by");
+  app.use((req, res, next) => {
+    if (!req.path.startsWith("/api/")) return next();
+    const requestId = randomUUID();
+    const startedAt = Date.now();
+    res.setHeader("X-Request-Id", requestId);
+    res.on("finish", () => console.log(JSON.stringify({ type: "api_request", requestId, method: req.method, path: req.path, status: res.statusCode, durationMs: Date.now() - startedAt })));
+    next();
+  });
   app.use(express.json({ limit: "1mb" }));
-  app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+  const health = (_req, res) => { res.setHeader("Cache-Control", "no-store"); res.json({ status: "ok", uptimeSeconds: Math.floor(process.uptime()), timestamp: new Date().toISOString() }); };
+  app.get("/health", health);
+  app.get("/api/health", health);
   app.all("/api/auth/profile", profileHandler);
   app.all("/api/academic", academicHandler);
   app.all("/api/academic/*", academicHandler);
@@ -34,11 +48,30 @@ async function startServer() {
     app.use(express.static(distPath));
     app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
   }
-  app.listen(PORT, "0.0.0.0", () => console.log(`FOSSA server listening on port ${PORT}`));
-  // Finalize elections after their voting deadline even if no student is viewing the scoreboard.
-  const electionFinalizer = setInterval(() => {
-    fetch(`http://127.0.0.1:${PORT}/api/elections`).catch(error => console.error("Election finalization check failed:", error?.message || error));
-  }, 30000);
-  electionFinalizer.unref?.();
+  const server = app.listen(PORT, "0.0.0.0", () => console.log("FOSSA server listening on port " + PORT));
+  const runElectionFinalizer = async () => {
+    if (shuttingDown || electionFinalizerRunning) return;
+    electionFinalizerRunning = true;
+    try {
+      const response = await fetch("http://127.0.0.1:" + PORT + "/api/elections", { signal: AbortSignal.timeout(10000) });
+      if (!response.ok) console.error("Election finalization check returned HTTP", response.status);
+    } catch (error) { if (!shuttingDown) console.error("Election finalization check failed:", error?.message || error); }
+    finally {
+      electionFinalizerRunning = false;
+      if (!shuttingDown) { electionFinalizerTimer = setTimeout(runElectionFinalizer, 30000); electionFinalizerTimer.unref?.(); }
+    }
+  };
+  server.once("listening", () => { electionFinalizerTimer = setTimeout(runElectionFinalizer, 30000); electionFinalizerTimer.unref?.(); });
+  const shutdown = signal => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log("FOSSA server received " + signal + "; beginning graceful shutdown.");
+    if (electionFinalizerTimer) clearTimeout(electionFinalizerTimer);
+    server.close(error => { if (error) { console.error("FOSSA server shutdown error:", error); process.exitCode = 1; } });
+    const forceCloseTimer = setTimeout(() => server.closeAllConnections?.(), 10000);
+    forceCloseTimer.unref?.();
+  };
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+  process.once("SIGINT", () => shutdown("SIGINT"));
 }
-startServer();
+startServer().catch(error => { console.error("FOSSA server failed to start:", error); process.exitCode = 1; });
