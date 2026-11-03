@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, MapPin, Search, UserRound, ArrowUpRight } from 'lucide-react';
 import { supabase } from '../lib/adminApi';
 import { getEvents, setEventRegistration } from '../lib/eventsApi';
-import { eventDateLabel, filterEventsByTab, isEventPast } from '../lib/eventUtils';
+import { eventDateLabel, filterEventsByTab, isEventPast, parseEventDate } from '../lib/eventUtils';
 import { AnimateIn } from '../components/AnimateLoad';
 
 export const PublicEventsPage = () => {
@@ -101,8 +101,8 @@ export const PublicEventsPage = () => {
               {event.speakers && <p className="flex items-start gap-2"><UserRound size={16} className="mt-0.5 shrink-0"/>{Array.isArray(event.speakers) ? event.speakers.join(', ') : event.speakers}</p>}
             </div>
             <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
-              {viewerRole === 'student' ? <button disabled={savingId===event.id || (!event.registered && isEventPast(event.date))} onClick={() => register(event)} className={'w-full rounded-xl px-4 py-3 text-sm font-bold disabled:opacity-60 '+(event.registered?'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300':'bg-indigo-600 text-white hover:bg-indigo-700')}>{savingId===event.id?'Saving…':event.registered?'Cancel registration':isEventPast(event.date)?'Registration closed':'Register for event'}</button> :
-                isEventPast(event.date) ? <button disabled className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-500 disabled:opacity-70">Registration closed</button> :
+              {viewerRole === 'student' ? <button disabled={savingId===event.id || (Boolean(event.date)&&parseEventDate(event.date)===null) || (!event.registered && isEventPast(event.date))} onClick={() => register(event)} className={'w-full rounded-xl px-4 py-3 text-sm font-bold disabled:opacity-60 '+(event.registered?'border border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-300':'bg-indigo-600 text-white hover:bg-indigo-700')}>{savingId===event.id?'Saving…':event.registered?'Cancel registration':event.date&&parseEventDate(event.date)===null?'Date needs correction':isEventPast(event.date)?'Registration closed':'Register for event'}</button> :
+                (isEventPast(event.date)||Boolean(event.date)&&parseEventDate(event.date)===null) ? <button disabled className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-500 disabled:opacity-70">{event.date&&parseEventDate(event.date)===null?'Date needs correction':'Registration closed'}</button> :
                 <button onClick={() => register(event)} className="flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white hover:bg-indigo-700">{session ? 'Student sign-in required' : 'Sign in to register'}<ArrowUpRight size={16}/></button>}
             </div>
           </div>
