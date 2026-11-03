@@ -129,6 +129,6 @@ export default async function adminHandler(req, res) {
     return send(res,404,{error:'Admin endpoint not found.'});
   } catch(err) {
     console.error('FOSSA admin API failure:',err?.message||err);
-    return send(res,500,{error:'The request failed. Check server configuration and database migration.'});
+    return send(res,err.status||500,{error:err.status?err.message:'The request failed. Check server configuration and database migration.'});
   }
 }
