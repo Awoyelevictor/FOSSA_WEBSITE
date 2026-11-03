@@ -56,7 +56,16 @@ export default async function adminHandler(req, res) {
       if(req.method==='GET'){
         let q=db.from('fossa_content_items').select('*').eq('content_type',type).order('updated_at',{ascending:false});
         if(new URL(req.url,'http://localhost').searchParams.get('published')==='true') q=q.eq('published',true);
-        const {data,error}=await q;if(error)throw error;return send(res,200,{items:data||[]});
+        const {data,error}=await q;if(error)throw error;
+        let items=data||[];
+        if(type==='events'&&admin&&items.length){
+          const{data:registrations,error:registrationError}=await db.from('fossa_event_registrations').select('event_id').in('event_id',items.map(item=>item.id));
+          if(registrationError)throw registrationError;
+          const counts=new Map();
+          for(const registration of registrations||[])counts.set(registration.event_id,(counts.get(registration.event_id)||0)+1);
+          items=items.map(item=>({...item,registration_count:counts.get(item.id)||0}));
+        }
+        return send(res,200,{items});
       }
       if((profile.role==='editor'||hasAdditionalEditorAccess) && type==='site-content') return send(res,403,{error:'Only administrators can edit site-wide content.'});
       if(req.method==='POST'){
