@@ -19,7 +19,7 @@ export default async function publicContentHandler(req, res) {
     return send(res, 200, { items: (data || []).map(item => {
       const payload = { ...(item.payload || {}) };
       // Executive account emails are private admin metadata, never public profile fields.
-      if (type === 'site-content') delete payload.account_email;
+      if (type === 'site-content') { delete payload.account_email; delete payload.executive_user_id; }
       return { id: item.id, ...payload, payload, created_at: item.created_at, updated_at: item.updated_at };
     }) });
   } catch (error) {
