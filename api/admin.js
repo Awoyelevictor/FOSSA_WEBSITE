@@ -55,22 +55,36 @@ export default async function adminHandler(req, res) {
       await audit('executive_editor_granted', 'user', resolved.account.id, { email: resolved.email, source: 'published executive profile' });
       return { email: resolved.email, role: resolved.role, can_edit_content: true, granted: true };
     };
-    const revokeExecutiveEditor = async payload => {
-      if (!/^executive\b/i.test(String(payload?.category || ''))) return;
-      const email = String(payload.account_email || '').trim().toLowerCase();
-      if (!/^\S+@\S+\.\S+$/.test(email)) return;
-      const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      if (usersError) throw usersError;
-      const account = (users?.users || []).find(item => String(item.email || '').trim().toLowerCase() === email);
-      if (!account) return;
-      const { data: remaining, error: remainingError } = await db.from('fossa_content_items')
-        .select('id').eq('content_type', 'site-content').eq('published', true)
-        .eq('payload->>account_email', email).ilike('payload->>category', 'Executive%');
-      if (remainingError) throw remainingError;
-      if ((remaining || []).length) return;
-      const { error } = await db.from('fossa_content_editor_access').delete().eq('user_id', account.id);
-      if (error) throw error;
-      await audit('executive_editor_revoked', 'user', account.id, { email, source: 'executive profile unpublished, removed, or reassigned' });
+    const syncExecutiveEditorAccess = async () => {
+      const [{data:profiles,error:profilesError},{data:users,error:usersError},{data:accessRows,error:accessError}] = await Promise.all([
+        db.from('fossa_content_items').select('id,payload').eq('content_type','site-content').eq('published',true).ilike('payload->>category','Executive%'),
+        db.auth.admin.listUsers({page:1,perPage:1000}),
+        db.from('fossa_content_editor_access').select('user_id')
+      ]);
+      if(profilesError||usersError||accessError)throw profilesError||usersError||accessError;
+      const usersByEmail=new Map((users?.users||[]).map(user=>[String(user.email||'').trim().toLowerCase(),user]));
+      const active=new Map();
+      for(const item of profiles||[]){
+        if(!/^executive\\b/i.test(String(item.payload?.category||'')))continue;
+        const email=String(item.payload?.account_email||'').trim().toLowerCase();
+        const account=usersByEmail.get(email);
+        if(account)active.set(account.id,item.id);
+      }
+      const existing=new Set((accessRows||[]).map(row=>row.user_id));
+      for(const userId of existing){
+        if(active.has(userId))continue;
+        const{error}=await db.from('fossa_content_editor_access').delete().eq('user_id',userId);
+        if(error)throw error;
+        await audit('executive_editor_revoked','user',userId,{source:'no active published executive profile'});
+      }
+      for(const[userId,profileId]of active){
+        if(existing.has(userId))continue;
+        const{error}=await db.from('fossa_content_editor_access').upsert({
+          user_id:userId,granted_by:actor.id,source:'executive_profile:'+String(profileId)
+        },{onConflict:'user_id'});
+        if(error)throw error;
+        await audit('executive_editor_granted','user',userId,{source:'active published executive profile'});
+      }
     };
     if(section==='content'){
       if(!TYPES.has(type)) return send(res,400,{error:'Unknown content section.'});
@@ -109,7 +123,7 @@ export default async function adminHandler(req, res) {
         if(oldError)throw oldError;
         if(!old)return send(res,404,{error:'Content item not found.'});
         const {error}=await db.from('fossa_content_items').delete().eq('id',id).eq('content_type',type);if(error)throw error;
-        if(old.published)await revokeExecutiveEditor(old.payload);
+        if(old.published)await syncExecutiveEditorAccess();
         await audit('delete',type,id,{title:old?.payload?.title||''});return send(res,200,{success:true});
       }
       const updates={updated_by:actor.id,updated_at:new Date().toISOString()};
@@ -131,7 +145,7 @@ export default async function adminHandler(req, res) {
       }
       const oldWasExecutive=type==='site-content'&&currentItem.published&&/^executive\b/i.test(String(currentItem.payload?.category||''));
       const sameExecutive=publishedExecutive&&String(currentItem.payload?.account_email||'').trim().toLowerCase()===String(nextPayload?.account_email||'').trim().toLowerCase();
-      if(oldWasExecutive&&!sameExecutive)await revokeExecutiveEditor(currentItem.payload);
+      if(oldWasExecutive&&!sameExecutive)await syncExecutiveEditorAccess();
       await audit('update',type,id,{title:data.payload?.title||''});return send(res,200,{item:data,executiveAccess});
     }
     if(section==='users'){
