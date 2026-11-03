@@ -83,7 +83,8 @@ export default async function academicHandler(req,res){
    if(matched.length){
     const{data:existing,error:existingError}=await db.from('fossa_academic_students').select('user_id,student_number').in('student_number',matched.map(item=>item.student_number));
     if(existingError)throw existingError;
-    const conflicting=(existing||[]).filter(row=>!matched.some(item=>item.user_id===row.user_id&&item.student_number===row.student_number));
+    const matchedByUser=new Map(matched.map(item=>[item.user_id,item.student_number]));
+    const conflicting=(existing||[]).filter(row=>matchedByUser.get(row.user_id)!==row.student_number);
     if(conflicting.length)return send(res,409,{error:'One or more matric numbers are already linked to a different account. Resolve the duplicate records before importing.'});
     const{error:upsertError}=await db.from('fossa_academic_students').upsert(matched,{onConflict:'user_id'});
     if(upsertError)throw upsertError;
