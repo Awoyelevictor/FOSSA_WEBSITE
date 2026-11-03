@@ -19,7 +19,11 @@ export default async function adminHandler(req, res) {
     const actorEmail=String(actor.email||'').trim().toLowerCase();
     const {data:profile,error:profileError}=await db.from('fossa_user_roles').select('role,display_name').eq('user_id',actor.id).maybeSingle();
     if(profileError){console.error('FOSSA admin role query failed:',{code:profileError.code,message:profileError.message,details:profileError.details,hint:profileError.hint,host:(()=>{try{return new URL(url).host}catch{return 'invalid-url'}})()});return send(res,503,{error:'Could not verify role. Check the Supabase project URL, service-role key, and function logs.'});}
-    if(!profile || !['editor','admin','super_admin'].includes(profile.role)) return send(res,403,{error:'This account has no FOSSA admin access.'});
+    if(!profile) return send(res,403,{error:'This account has no FOSSA role.'});
+    const { data: additionalEditor, error: additionalEditorError } = await db.from('fossa_content_editor_access').select('user_id').eq('user_id',actor.id).maybeSingle();
+    if (additionalEditorError) return send(res,503,{error:'Could not verify additional content-editor access. Apply the latest FOSSA migration.'});
+    const hasAdditionalEditorAccess = Boolean(additionalEditor);
+    if(!['editor','admin','super_admin'].includes(profile.role) && !hasAdditionalEditorAccess) return send(res,403,{error:'This account has no FOSSA content-editor access.'});
     // Enforce the sole Super Admin identity on every server request.
     if(profile.role==='super_admin' && actorEmail!==SUPER_ADMIN_EMAIL) return send(res,403,{error:'Super Admin access is restricted to the designated FOSSA account.'});
     const parts=new URL(req.url,'http://localhost').pathname.replace(/^\/api\/admin\/?/,'').split('/').filter(Boolean);
@@ -27,7 +31,7 @@ export default async function adminHandler(req, res) {
     const superAdmin=profile.role==='super_admin';
     const admin=superAdmin||profile.role==='admin';
     const audit=async(action,entity,entityId,details={})=>{await db.from('fossa_admin_audit_logs').insert({actor_id:actor.id,actor_email:actor.email,action,entity_type:entity,entity_id:entityId==null?null:String(entityId),details});};
-    const grantExecutiveEditor = async payload => {
+    const grantExecutiveEditor = async (payload, executiveId) => {
       if (!/executive/i.test(String(payload?.category || ''))) return null;
       const email = String(payload.account_email || '').trim().toLowerCase();
       if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
@@ -37,20 +41,15 @@ export default async function adminHandler(req, res) {
       if (usersError) throw usersError;
       const account = (users?.users || []).find(item => String(item.email || '').toLowerCase() === email);
       if (!account) throw Object.assign(new Error('No FOSSA account exists for this email. Invite the executive as a student first, then publish the profile.'), { status: 400 });
-      const { data: existing, error: roleError } = await db.from('fossa_user_roles').select('role,display_name').eq('user_id', account.id).maybeSingle();
+      const { data: existing, error: roleError } = await db.from('fossa_user_roles').select('role').eq('user_id', account.id).maybeSingle();
       if (roleError) throw roleError;
       if (['admin', 'super_admin', 'editor'].includes(existing?.role)) return { email, role: existing.role, granted: false };
-      if (existing?.role === 'lecturer') {
-        throw Object.assign(new Error('This account already has the Lecturer role. It has been left unchanged to protect lecturer workspace access.'), { status: 409 });
-      }
-      const { error: grantError } = await db.from('fossa_user_roles').upsert({
-        user_id: account.id,
-        role: 'editor',
-        display_name: existing?.display_name || account.user_metadata?.display_name || account.user_metadata?.full_name || ''
-      });
+      const { error: grantError } = await db.from('fossa_content_editor_access').upsert({
+        user_id: account.id, granted_by: actor.id, source: 'executive_profile:' + String(executiveId || 'new')
+      }, { onConflict: 'user_id' });
       if (grantError) throw grantError;
       await audit('executive_editor_granted', 'user', account.id, { email, source: 'published executive profile' });
-      return { email, role: 'editor', granted: true };
+      return { email, role: existing?.role || 'student', can_edit_content: true, granted: true };
     };
     if(section==='content'){
       if(!TYPES.has(type)) return send(res,400,{error:'Unknown content section.'});
@@ -59,7 +58,7 @@ export default async function adminHandler(req, res) {
         if(new URL(req.url,'http://localhost').searchParams.get('published')==='true') q=q.eq('published',true);
         const {data,error}=await q;if(error)throw error;return send(res,200,{items:data||[]});
       }
-      if(profile.role==='editor' && type==='site-content') return send(res,403,{error:'Only administrators can edit site-wide content.'});
+      if((profile.role==='editor'||hasAdditionalEditorAccess) && type==='site-content') return send(res,403,{error:'Only administrators can edit site-wide content.'});
       if(req.method==='POST'){
         const payload=req.body?.payload;
         if(!payload||typeof payload!=='object'||Array.isArray(payload)||!String(payload.title||'').trim())return send(res,400,{error:'A title is required.'});
