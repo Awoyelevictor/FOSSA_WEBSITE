@@ -10,6 +10,18 @@ import { ChevronRight } from '../components/animate-ui/icons/chevron-right';
 import { AnimateIn, AnimatedText } from '../components/AnimateLoad';
 
 export const MorePage = () => {
+    const [canEditContent, setCanEditContent] = useState(false);
+    useEffect(() => {
+        let active = true;
+        supabase?.auth.getSession().then(async ({ data }) => {
+            const token = data.session?.access_token;
+            if (!token) return;
+            const response = await fetch('/api/auth/profile', { headers: { Authorization: 'Bearer ' + token } });
+            const profile = await response.json().catch(() => ({}));
+            if (active && response.ok) setCanEditContent(Boolean(profile.can_edit_content));
+        }).catch(() => {});
+        return () => { active = false; };
+    }, []);
     return (
         <div className="max-w-3xl mx-auto w-full pb-10 text-left">
             {/* Header */}
