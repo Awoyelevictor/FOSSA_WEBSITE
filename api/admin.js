@@ -92,14 +92,24 @@ export default async function adminHandler(req, res) {
       if(req.method==='POST'){
         const payload=req.body?.payload;
         if(!payload||typeof payload!=='object'||Array.isArray(payload)||!String(payload.title||'').trim())return send(res,400,{error:'A title is required.'});
-        const executiveAccess=type==='site-content'&&req.body.published&&/executive/i.test(String(payload.category||''))?await grantExecutiveEditor(payload):null;
+        const publishedExecutive=type==='site-content'&&Boolean(req.body.published)&&/^executive\\b/i.test(String(payload.category||''));
+        const resolvedExecutive=publishedExecutive?await findExecutiveAccount(payload):null;
         const {data,error}=await db.from('fossa_content_items').insert({content_type:type,payload,published:Boolean(req.body.published),created_by:actor.id,updated_by:actor.id}).select('*').single();
-        if(error)throw error;await audit('create',type,data.id,{title:payload.title});return send(res,201,{item:data,executiveAccess});
+        if(error)throw error;
+        let executiveAccess=null;
+        if(resolvedExecutive){
+          try{executiveAccess=await grantExecutiveEditor(resolvedExecutive,data.id);}
+          catch(grantError){await db.from('fossa_content_items').delete().eq('id',data.id);throw grantError;}
+        }
+        await audit('create',type,data.id,{title:payload.title});return send(res,201,{item:data,executiveAccess});
       }
       if(!id)return send(res,400,{error:'Content ID is required.'});
       if(req.method==='DELETE'){
-        const {data:old}=await db.from('fossa_content_items').select('payload').eq('id',id).eq('content_type',type).maybeSingle();
+        const {data:old,error:oldError}=await db.from('fossa_content_items').select('payload,published').eq('id',id).eq('content_type',type).maybeSingle();
+        if(oldError)throw oldError;
+        if(!old)return send(res,404,{error:'Content item not found.'});
         const {error}=await db.from('fossa_content_items').delete().eq('id',id).eq('content_type',type);if(error)throw error;
+        if(old.published)await revokeExecutiveEditor(old.payload);
         await audit('delete',type,id,{title:old?.payload?.title||''});return send(res,200,{success:true});
       }
       const updates={updated_by:actor.id,updated_at:new Date().toISOString()};
@@ -110,9 +120,19 @@ export default async function adminHandler(req, res) {
       if(!currentItem)return send(res,404,{error:'Content item not found.'});
       const nextPayload=updates.payload||currentItem.payload;
       const nextPublished=typeof updates.published==='boolean'?updates.published:currentItem.published;
-      const executiveAccess=type==='site-content'&&nextPublished&&/executive/i.test(String(nextPayload?.category||''))?await grantExecutiveEditor(nextPayload):null;
+      const publishedExecutive=type==='site-content'&&nextPublished&&/^executive\\b/i.test(String(nextPayload?.category||''));
+      const resolvedExecutive=publishedExecutive?await findExecutiveAccount(nextPayload):null;
       const {data,error}=await db.from('fossa_content_items').update(updates).eq('id',id).eq('content_type',type).select('*').single();
-      if(error)throw error;await audit('update',type,id,{title:data.payload?.title||''});return send(res,200,{item:data,executiveAccess});
+      if(error)throw error;
+      let executiveAccess=null;
+      if(resolvedExecutive){
+        try{executiveAccess=await grantExecutiveEditor(resolvedExecutive,id);}
+        catch(grantError){await db.from('fossa_content_items').update({payload:currentItem.payload,published:currentItem.published}).eq('id',id);throw grantError;}
+      }
+      const oldWasExecutive=type==='site-content'&&currentItem.published&&/^executive\\b/i.test(String(currentItem.payload?.category||''));
+      const sameExecutive=publishedExecutive&&String(currentItem.payload?.account_email||'').trim().toLowerCase()===String(nextPayload?.account_email||'').trim().toLowerCase();
+      if(oldWasExecutive&&!sameExecutive)await revokeExecutiveEditor(currentItem.payload);
+      await audit('update',type,id,{title:data.payload?.title||''});return send(res,200,{item:data,executiveAccess});
     }
     if(section==='users'){
       if(!admin)return send(res,403,{error:'Only admins can manage student accounts.'});
