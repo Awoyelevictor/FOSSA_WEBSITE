@@ -22,9 +22,9 @@ export default async function adminHandler(req, res) {
     if(!profile) return send(res,403,{error:'This account has no FOSSA admin access.'});
     const {data: executiveProfile,error:executiveError}=await db.from('fossa_content_items')
       .select('id,payload').eq('content_type','site-content').eq('published',true)
-      .eq('payload->>executive_user_id',actor.id).limit(1).maybeSingle();
+      .eq('payload->>executive_user_id',actor.id).ilike('payload->>category','Executive%').limit(1).maybeSingle();
     if(executiveError)throw executiveError;
-    const isExecutiveEditor=Boolean(executiveProfile);
+    const isExecutiveEditor=Boolean(executiveProfile)&&!['admin','super_admin'].includes(profile.role);
     const canEditContent=['editor','admin','super_admin'].includes(profile.role)||isExecutiveEditor;
     if(!canEditContent)return send(res,403,{error:'This account has no FOSSA content-editor access.'});
     // Enforce the sole Super Admin identity on every server request.
