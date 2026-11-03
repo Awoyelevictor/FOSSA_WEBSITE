@@ -31,25 +31,42 @@ export default async function adminHandler(req, res) {
     const superAdmin=profile.role==='super_admin';
     const admin=superAdmin||profile.role==='admin';
     const audit=async(action,entity,entityId,details={})=>{await db.from('fossa_admin_audit_logs').insert({actor_id:actor.id,actor_email:actor.email,action,entity_type:entity,entity_id:entityId==null?null:String(entityId),details});};
-    const grantExecutiveEditor = async (payload, executiveId) => {
-      if (!/executive/i.test(String(payload?.category || ''))) return null;
+    const findExecutiveAccount = async payload => {
+      if (!/^executive\\b/i.test(String(payload?.category || ''))) return null;
       const email = String(payload.account_email || '').trim().toLowerCase();
-      if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+      if (!email || !/^\\S+@\\S+\\.\\S+$/.test(email)) {
         throw Object.assign(new Error('Add the executive’s registered FOSSA account email to grant content-editor access automatically.'), { status: 400 });
       }
       const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
       if (usersError) throw usersError;
-      const account = (users?.users || []).find(item => String(item.email || '').toLowerCase() === email);
+      const account = (users?.users || []).find(item => String(item.email || '').trim().toLowerCase() === email);
       if (!account) throw Object.assign(new Error('No FOSSA account exists for this email. Invite the executive as a student first, then publish the profile.'), { status: 400 });
       const { data: existing, error: roleError } = await db.from('fossa_user_roles').select('role').eq('user_id', account.id).maybeSingle();
       if (roleError) throw roleError;
-      if (['admin', 'super_admin', 'editor'].includes(existing?.role)) return { email, role: existing.role, granted: false };
+      return { account, role: existing?.role || 'student', email };
+    };
+    const grantExecutiveEditor = async (payload, executiveId) => {
+      const resolved = await findExecutiveAccount(payload);
+      if (!resolved) return null;
+      if (['admin', 'super_admin', 'editor'].includes(resolved.role)) return { email: resolved.email, role: resolved.role, granted: false };
       const { error: grantError } = await db.from('fossa_content_editor_access').upsert({
-        user_id: account.id, granted_by: actor.id, source: 'executive_profile:' + String(executiveId || 'new')
+        user_id: resolved.account.id, granted_by: actor.id, source: 'executive_profile:' + String(executiveId || 'new')
       }, { onConflict: 'user_id' });
       if (grantError) throw grantError;
-      await audit('executive_editor_granted', 'user', account.id, { email, source: 'published executive profile' });
-      return { email, role: existing?.role || 'student', can_edit_content: true, granted: true };
+      await audit('executive_editor_granted', 'user', resolved.account.id, { email: resolved.email, source: 'published executive profile' });
+      return { email: resolved.email, role: resolved.role, can_edit_content: true, granted: true };
+    };
+    const revokeExecutiveEditor = async (payload, executiveId) => {
+      const resolved = await findExecutiveAccount(payload);
+      if (!resolved || ['admin', 'super_admin', 'editor'].includes(resolved.role)) return;
+      const { data: remaining, error: remainingError } = await db.from('fossa_content_items')
+        .select('id').eq('content_type', 'site-content').eq('published', true)
+        .eq('payload->>account_email', resolved.email).ilike('payload->>category', 'Executive%');
+      if (remainingError) throw remainingError;
+      if ((remaining || []).some(item => item.id !== executiveId)) return;
+      const { error } = await db.from('fossa_content_editor_access').delete().eq('user_id', resolved.account.id);
+      if (error) throw error;
+      await audit('executive_editor_revoked', 'user', resolved.account.id, { email: resolved.email, source: 'executive profile unpublished, removed, or reassigned' });
     };
     if(section==='content'){
       if(!TYPES.has(type)) return send(res,400,{error:'Unknown content section.'});
