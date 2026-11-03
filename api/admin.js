@@ -45,8 +45,7 @@ export default async function adminHandler(req, res) {
       if (roleError) throw roleError;
       return { account, role: existing?.role || 'student', email };
     };
-    const grantExecutiveEditor = async (payload, executiveId) => {
-      const resolved = await findExecutiveAccount(payload);
+    const grantExecutiveEditor = async (resolved, executiveId) => {
       if (!resolved) return null;
       if (['admin', 'super_admin', 'editor'].includes(resolved.role)) return { email: resolved.email, role: resolved.role, granted: false };
       const { error: grantError } = await db.from('fossa_content_editor_access').upsert({
@@ -56,17 +55,22 @@ export default async function adminHandler(req, res) {
       await audit('executive_editor_granted', 'user', resolved.account.id, { email: resolved.email, source: 'published executive profile' });
       return { email: resolved.email, role: resolved.role, can_edit_content: true, granted: true };
     };
-    const revokeExecutiveEditor = async (payload, executiveId) => {
-      const resolved = await findExecutiveAccount(payload);
-      if (!resolved || ['admin', 'super_admin', 'editor'].includes(resolved.role)) return;
+    const revokeExecutiveEditor = async payload => {
+      if (!/^executive\\b/i.test(String(payload?.category || ''))) return;
+      const email = String(payload.account_email || '').trim().toLowerCase();
+      if (!/^\\S+@\\S+\\.\\S+$/.test(email)) return;
+      const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      if (usersError) throw usersError;
+      const account = (users?.users || []).find(item => String(item.email || '').trim().toLowerCase() === email);
+      if (!account) return;
       const { data: remaining, error: remainingError } = await db.from('fossa_content_items')
         .select('id').eq('content_type', 'site-content').eq('published', true)
-        .eq('payload->>account_email', resolved.email).ilike('payload->>category', 'Executive%');
+        .eq('payload->>account_email', email).ilike('payload->>category', 'Executive%');
       if (remainingError) throw remainingError;
-      if ((remaining || []).some(item => item.id !== executiveId)) return;
-      const { error } = await db.from('fossa_content_editor_access').delete().eq('user_id', resolved.account.id);
+      if ((remaining || []).length) return;
+      const { error } = await db.from('fossa_content_editor_access').delete().eq('user_id', account.id);
       if (error) throw error;
-      await audit('executive_editor_revoked', 'user', resolved.account.id, { email: resolved.email, source: 'executive profile unpublished, removed, or reassigned' });
+      await audit('executive_editor_revoked', 'user', account.id, { email, source: 'executive profile unpublished, removed, or reassigned' });
     };
     if(section==='content'){
       if(!TYPES.has(type)) return send(res,400,{error:'Unknown content section.'});
