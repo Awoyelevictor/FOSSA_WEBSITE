@@ -88,7 +88,7 @@ export default async function electionsHandler(req, res) {
       const shaped = [];
       for (const post of posts || []) {
         const { data: candidates, error: candidateError } = await db.from('fossa_election_candidates')
-          .select('id,election_id,post_id,manifesto,status,created_at,student_id')
+          .select('id,election_id,post_id,manifesto,status,created_at,student_id,photo_path')
           .eq('post_id', post.id).eq('status', 'approved').order('created_at');
         if (candidateError) throw candidateError;
         const safeCandidates = [];
@@ -97,7 +97,7 @@ export default async function electionsHandler(req, res) {
           const { count, error: tallyError } = await db.from('fossa_election_ballots').select('id', { count: 'exact', head: true }).eq('post_id', post.id).eq('candidate_id', candidate.id);
           if (tallyError) throw tallyError;
           safeCandidates.push({
-            id: candidate.id, manifesto: candidate.manifesto, display_name: role?.display_name || 'Approved candidate',
+            id: candidate.id, manifesto: candidate.manifesto, display_name: role?.display_name || 'Approved candidate',\n            photo_url: candidate.photo_path ? db.storage.from('fossa-academic-files').getPublicUrl(candidate.photo_path).data.publicUrl : null,
             votes: row.show_live_scores || row.status === 'results_published' ? (count || 0) : null
           });
         }
@@ -178,12 +178,12 @@ export default async function electionsHandler(req, res) {
       }
       if (admin) {
         const { data: cohorts } = await db.from('fossa_election_cohorts').select('department,level').eq('election_id', electionId);
-        const { data: candidates } = await db.from('fossa_election_candidates').select('id,election_id,post_id,student_id,manifesto,status,review_note,created_at').eq('election_id', electionId).order('created_at');
+        const { data: candidates } = await db.from('fossa_election_candidates').select('id,election_id,post_id,student_id,manifesto,status,review_note,created_at,photo_path').eq('election_id', electionId).order('created_at');
         shaped.cohorts = cohorts || [];
         shaped.applications = [];
         for (const candidate of candidates || []) {
           const { data: role } = await db.from('fossa_user_roles').select('display_name,matric_number').eq('user_id', candidate.student_id).maybeSingle();
-          shaped.applications.push({ ...candidate, display_name: role?.display_name || 'Student', matric_number: role?.matric_number || '' });
+          shaped.applications.push({ ...candidate, photo_url: candidate.photo_path ? db.storage.from('fossa-academic-files').getPublicUrl(candidate.photo_path).data.publicUrl : null, display_name: role?.display_name || 'Student', matric_number: role?.matric_number || '' });
         }
       }
       return send(res, 200, { election: shaped });
@@ -219,7 +219,7 @@ export default async function electionsHandler(req, res) {
       if (!postId || manifesto.length > 5000) return send(res, 400, { error: 'Choose a post and keep the manifesto under 5,000 characters.' });
       const { data: post } = await db.from('fossa_election_posts').select('id').eq('id', postId).eq('election_id', electionId).maybeSingle();
       if (!post) return send(res, 400, { error: 'Choose a valid post for this election.' });
-      const { data, error } = await db.from('fossa_election_candidates').insert({ election_id: electionId, post_id: postId, student_id: actor.id, manifesto }).select('id,status,created_at').single();
+      const { data, error } = await db.from('fossa_election_candidates').insert({ election_id: electionId, post_id: postId, student_id: actor.id, manifesto, photo_path: photoPath }).select('id,status,created_at').single();
       if (error?.code === '23505') return send(res, 409, { error: 'You already applied for this post.' });
       if (error) throw error;
       await audit(electionId, 'candidate_application_submitted', { post_id: postId });
