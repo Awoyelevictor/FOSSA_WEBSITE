@@ -97,7 +97,8 @@ export default async function electionsHandler(req, res) {
           const { count, error: tallyError } = await db.from('fossa_election_ballots').select('id', { count: 'exact', head: true }).eq('post_id', post.id).eq('candidate_id', candidate.id);
           if (tallyError) throw tallyError;
           safeCandidates.push({
-            id: candidate.id, manifesto: candidate.manifesto, display_name: role?.display_name || 'Approved candidate',\n            photo_url: candidate.photo_path ? db.storage.from('fossa-academic-files').getPublicUrl(candidate.photo_path).data.publicUrl : null,
+            id: candidate.id, manifesto: candidate.manifesto, display_name: role?.display_name || 'Approved candidate',
+            photo_url: candidate.photo_path ? db.storage.from('fossa-academic-files').getPublicUrl(candidate.photo_path).data.publicUrl : null,
             votes: row.show_live_scores || row.status === 'results_published' ? (count || 0) : null
           });
         }
