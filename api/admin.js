@@ -27,43 +27,60 @@ export default async function adminHandler(req, res) {
     const superAdmin=profile.role==='super_admin';
     const admin=superAdmin||profile.role==='admin';
     const audit=async(action,entity,entityId,details={})=>{await db.from('fossa_admin_audit_logs').insert({actor_id:actor.id,actor_email:actor.email,action,entity_type:entity,entity_id:entityId==null?null:String(entityId),details});};
-    const grantExecutiveEditor = async payload => {
-      if (!/executive/i.test(String(payload?.category || ''))) return null;
-      const email = String(payload.account_email || '').trim().toLowerCase();
-      if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
-        throw Object.assign(new Error('Add the executive’s registered FOSSA account email to grant content-editor access automatically.'), { status: 400 });
-      }
-      const { data: users, error: usersError } = await db.auth.admin.listUsers({ page: 1, perPage: 1000 });
-      if (usersError) throw usersError;
-      const account = (users?.users || []).find(item => String(item.email || '').toLowerCase() === email);
-      if (!account) throw Object.assign(new Error('No FOSSA account exists for this email. Invite the executive as a student first, then publish the profile.'), { status: 400 });
-      const { data: existing, error: roleError } = await db.from('fossa_user_roles').select('role,display_name').eq('user_id', account.id).maybeSingle();
-      if (roleError) throw roleError;
-      if (['admin', 'super_admin', 'editor'].includes(existing?.role)) return { email, role: existing.role, granted: false };
-      if (existing?.role === 'lecturer') {
-        throw Object.assign(new Error('This account already has the Lecturer role. It has been left unchanged to protect lecturer workspace access.'), { status: 409 });
-      }
-      const { error: grantError } = await db.from('fossa_user_roles').upsert({
-        user_id: account.id,
-        role: 'editor',
-        display_name: existing?.display_name || account.user_metadata?.display_name || account.user_metadata?.full_name || ''
-      });
-      if (grantError) throw grantError;
-      await audit('executive_editor_granted', 'user', account.id, { email, source: 'published executive profile' });
-      return { email, role: 'editor', granted: true };
+    const {data:executiveProfile,error:executiveError}=await db.from('fossa_content_items')
+      .select('id,payload').eq('content_type','site-content').eq('published',true)
+      .eq('payload->>executive_user_id',actor.id).ilike('payload->>category','Executive%').limit(1).maybeSingle();
+    if(executiveError)throw executiveError;
+    const isExecutiveEditor=Boolean(executiveProfile)&&!['admin','super_admin'].includes(profile.role);
+    const canEditContent=['editor','admin','super_admin'].includes(profile.role)||isExecutiveEditor;
+    if(!canEditContent)return send(res,403,{error:'This account has no FOSSA content-editor access.'});
+    const validateExecutiveAssignment=async(payload,excludeId=null)=>{
+      if(!/^executive\\b/i.test(String(payload?.category||'')))return null;
+      const userId=String(payload?.executive_user_id||'').trim();
+      if(!userId)throw Object.assign(new Error('Select the executive’s registered FOSSA account to enable content-editor access.'),{status:400});
+      const{data:account,error:accountError}=await db.from('fossa_user_roles').select('user_id,role').eq('user_id',userId).maybeSingle();
+      if(accountError)throw accountError;
+      if(!account)throw Object.assign(new Error('The selected account is not a registered FOSSA user.'),{status:400});
+      const{data:existing,error:existingError}=await db.from('fossa_content_items').select('id')
+       .eq('content_type','site-content').eq('published',true).eq('payload->>executive_user_id',userId)
+       .ilike('payload->>category','Executive%');
+      if(existingError)throw existingError;
+      if((existing||[]).some(item=>item.id!==excludeId))throw Object.assign(new Error('This account is already linked to another published executive profile.'),{status:409});
+      return {user_id:userId,account_role:account.role,content_editor_access:true};
     };
     if(section==='content'){
       if(!TYPES.has(type)) return send(res,400,{error:'Unknown content section.'});
       if(req.method==='GET'){
         let q=db.from('fossa_content_items').select('*').eq('content_type',type).order('updated_at',{ascending:false});
         if(new URL(req.url,'http://localhost').searchParams.get('published')==='true') q=q.eq('published',true);
+        if(isExecutiveEditor&&type==='site-content')q=q.eq('id',executiveProfile.id);
         const {data,error}=await q;if(error)throw error;return send(res,200,{items:data||[]});
+      }
+      if(isExecutiveEditor&&type==='site-content'){
+        if(!id||!['PUT','PATCH'].includes(req.method))return send(res,403,{error:'Executive editors can only update their own published profile.'});
+        const {data:existing,error:existingError}=await db.from('fossa_content_items').select('id,payload')
+          .eq('id',id).eq('content_type','site-content').maybeSingle();
+        if(existingError)throw existingError;
+        if(!existing||existing.id!==executiveProfile.id||existing.payload?.executive_user_id!==actor.id)return send(res,404,{error:'Your assigned executive profile was not found.'});
+        const submitted=req.body?.payload||{},payload={...existing.payload};
+        for(const key of ['description','image','url']){
+          if(submitted[key]!==undefined){
+            if(typeof submitted[key]!=='string'||submitted[key].length>5000)return send(res,400,{error:'Executive profile fields must be text under 5,000 characters.'});
+            payload[key]=submitted[key].trim();
+          }
+        }
+        const {data,error}=await db.from('fossa_content_items').update({payload,updated_by:actor.id,updated_at:new Date().toISOString()})
+          .eq('id',id).eq('content_type','site-content').select('*').single();
+        if(error)throw error;
+        await audit('update_own_executive_profile','site-content',id,{});
+        return send(res,200,{item:data});
       }
       if(profile.role==='editor' && type==='site-content') return send(res,403,{error:'Only administrators can edit site-wide content.'});
       if(req.method==='POST'){
         const payload=req.body?.payload;
         if(!payload||typeof payload!=='object'||Array.isArray(payload)||!String(payload.title||'').trim())return send(res,400,{error:'A title is required.'});
-        const executiveAccess=type==='site-content'&&req.body.published&&/executive/i.test(String(payload.category||''))?await grantExecutiveEditor(payload):null;
+        const executiveAccess=type==='site-content'&&req.body.published?await validateExecutiveAssignment(payload):null;
+        if(type==='site-content')delete payload.account_email;
         const {data,error}=await db.from('fossa_content_items').insert({content_type:type,payload,published:Boolean(req.body.published),created_by:actor.id,updated_by:actor.id}).select('*').single();
         if(error)throw error;await audit('create',type,data.id,{title:payload.title});return send(res,201,{item:data,executiveAccess});
       }
@@ -81,7 +98,8 @@ export default async function adminHandler(req, res) {
       if(!currentItem)return send(res,404,{error:'Content item not found.'});
       const nextPayload=updates.payload||currentItem.payload;
       const nextPublished=typeof updates.published==='boolean'?updates.published:currentItem.published;
-      const executiveAccess=type==='site-content'&&nextPublished&&/executive/i.test(String(nextPayload?.category||''))?await grantExecutiveEditor(nextPayload):null;
+      const executiveAccess=type==='site-content'&&nextPublished?await validateExecutiveAssignment(nextPayload,id):null;
+      if(type==='site-content'&&updates.payload){delete updates.payload.account_email;}
       const {data,error}=await db.from('fossa_content_items').update(updates).eq('id',id).eq('content_type',type).select('*').single();
       if(error)throw error;await audit('update',type,id,{title:data.payload?.title||''});return send(res,200,{item:data,executiveAccess});
     }
